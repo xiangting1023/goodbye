@@ -8,3 +8,40 @@
   position: relative;
   top: 30px;
 }
+
+body {
+  padding-top: 64px; 
+}
+
+.collecttile {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-top: 2rem;        
+  margin-bottom: 1rem;     
+  display: block;          
+  position: relative;
+  top: 0;                  
+}
+
+/* 無收藏時的提示樣式 */
+.empty-hint {
+  color: #6c757d; /* Bootstrap 的 text-muted 顏色 */
+}
+
+/* 標籤樣式統一 */
+.card .badge {
+  font-size: 0.85rem;
+  margin-right: 4px;
+}
+
+/* 遮罩文字置中 */
+.card .position-absolute {
+  text-align: center;
+}
+
+.shop-list-wrapper {
+  background-color: #F9EFE0;
+  border: 3px solid #ffc0cb; /* 淺灰外框 */
+  border-radius: 12px; /* 圓角 */
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1); /* 陰影，選加 */
+}

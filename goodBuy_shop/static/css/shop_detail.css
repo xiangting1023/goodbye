@@ -411,6 +411,8 @@ input[type="number"] {
 .image-scroll-box {
     max-height: 300px;
     overflow-y: auto;
+    overflow-x: hidden; /* ✅ 關閉水平捲軸 */
+    padding-right: 4px; /* ✅ 預防圖片太靠邊 */
 }
 
 .thumbnail-box {
