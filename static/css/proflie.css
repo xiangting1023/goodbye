@@ -1,13 +1,14 @@
 body {
     background: #f9f7f1;
+    margin: 0;
 }
 
 .profile-container {
     max-width: 1240px;
-    margin: 40px auto 0 auto;
-    padding: 18px 18px 28px 18px;
+    padding: 140px 18px 28px 18px !important;  /* 上面推 140px，底下推 28px，左右各 18px */
     background: #fff8ed;
     border-radius: 18px;
+    margin: 0 auto;
 }
 
 .profile-header {
@@ -105,7 +106,7 @@ body {
     .profile-stats { flex-direction: column; gap: 8px; }
 }
 @media (max-width: 600px) {
-    .profile-container { padding: 8px 2vw; }
+    .profile-container { padding: 80px 2vw 16px 2vw; }  /* 手機版推小一點，視情況調整 */
     .row-cols-lg-6 > .col { width: 50%; }
     .profile-section-title { font-size: 1rem; }
 }

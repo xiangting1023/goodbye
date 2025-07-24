@@ -10,11 +10,20 @@
 </head>
 <body>
 
-    <a href="{% url 'view_profile' shop.owner.id %}">查看賣家</a>
     
 <div class="container mt-4">
     <div class="row">
         <div class="col-md-8">
+            <div class="card p-3 mb-3">
+                <div class="d-flex align-items-center">
+                    <img src="{{ shop.owner.profile.avatar.url }}" class="avatar me-2">
+                    <div>
+                         <strong>{{ shop.owner.username }}</strong><br>
+                         <a href="{% url 'view_profile' shop.owner.id %}" class="fw-bold text-decoration-none">查看賣家</a>
+                    </div>
+                </div>
+            </div>
+
             <!-- 主卡片 -->
             <div class="card p-3 d-flex flex-column">
                 <!-- 上半部：左右結構 -->
