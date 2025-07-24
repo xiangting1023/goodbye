@@ -74,6 +74,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const itemCheckboxes = groupElement.querySelectorAll(".item-checkbox");
       itemCheckboxes.forEach((cb) => (cb.checked = groupCheckbox.checked));
       updateGroupTotal(groupElement);
+      updateCartCount()
     });
   });
 
@@ -86,7 +87,8 @@ document.addEventListener("DOMContentLoaded", function () {
       const allItems = groupElement.querySelectorAll(".item-checkbox");
       const allChecked = [...allItems].every(cb => cb.checked);
       groupElement.querySelector(".group-checkbox").checked = allChecked;
-      updateGroupTotal(groupElement);
+      updateGroupTotal(groupElement); //更新總計
+      updateCartCount(); // 更新購物車商品數量顯示
     });
   });
 
@@ -94,7 +96,8 @@ document.addEventListener("DOMContentLoaded", function () {
   document.querySelectorAll(".quantity-input").forEach((input) => {
     input.addEventListener("change", function () {
       const groupElement = input.closest(".cart-group");
-      updateGroupTotal(groupElement);
+      updateGroupTotal(groupElement); //更新總計
+      updateCartCount(); // 更新購物車商品數量顯示
     });
   });
 
@@ -110,4 +113,13 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     });
   }
+
+  // 更新購物車商品數量顯示
+  function updateCartCount() {
+  const checkedItems = document.querySelectorAll(".item-checkbox:checked");
+  const count = checkedItems.length;
+  document.getElementById("cart-count").textContent = `總共 ${count} 個商品`;
+  updateCartCount() // 初始化時更新一次
+  }
+
 });

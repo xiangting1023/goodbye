@@ -11,7 +11,8 @@
 </head>
 <body>
   <div class="container py-4">
-    <h2 class="fw-bold mb-4">購物車</h2>
+    <h2 class="fw-bold mb-4 cart-title">購物車</h2>
+    <p class="text-muted mb-4" id="cart-count">總共 0 個商品</p>
     <form method="POST" action="{% url 'delete_multiple_cart_items' %}" id="cart-form">
       {% csrf_token %}
 
