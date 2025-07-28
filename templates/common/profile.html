@@ -104,7 +104,7 @@
         {% endfor %}
         {% if user_shops|length > 6 %}
         <div class="col-12 text-end">
-            <button class="more-btn" onclick="window.location.href='{% url 'user_shops_more' profile_user.id %}'">查看更多{{ profile_user.username }}的賣場 >></button>
+            {% comment %} <button class="more-btn" onclick="window.location.href='{% url 'user_shops_more' profile_user.id %}'">查看更多{{ profile_user.username }}的賣場 >></button> {% endcomment %}
         </div>
         {% endif %}
     </div>
