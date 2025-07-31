@@ -5,7 +5,7 @@ body {
 
 .profile-container {
     max-width: 1240px;
-    padding: 140px 32px 32px 32px;  /* 兩側空間大一點比較像你要的版型 */
+    padding: 140px 32px 32px 32px;  
     background: #fff8ed;
     border-radius: 18px;
     margin: 0 auto;
@@ -24,8 +24,8 @@ body {
 
 /* 頭像 */
 .profile-avatar {
-    width: 96px;
-    height: 96px;
+    width: 150px;
+    height: 150px;
     border-radius: 50%;
     object-fit: cover;
     border: 2.5px solid #c5d6ea;
@@ -46,7 +46,7 @@ body {
     font-size: 2.4rem;
     font-weight: bold;
     margin-bottom: 8px;
-    color: #3955ac;
+    color: #38393d;
     letter-spacing: 2px;
     margin-left: 0;
 }
@@ -69,7 +69,7 @@ body {
 
 .profile-stats .value {
     font-weight: bold;
-    color: #115be7;
+    color: #38393b;
     margin-left: 3px;
 }
 
@@ -123,7 +123,7 @@ body {
 .more-btn {
     background: none;
     border: none;
-    color: #115be7;
+    color: #434343;
     font-weight: bold;
     margin-top: 10px;
     cursor: pointer;

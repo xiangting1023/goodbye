@@ -16,8 +16,8 @@
 
 {% for blocked_user in blacklist %}
   <li>
-    {% if blocked_user.black_user.img %}
-      <img class="avatar" src="{{ blocked_user.black_user.img.url }}" alt="頭像" />
+    {% if profile_user.profile.avatar %}
+      <img class="profile-avatar" src="{{ profile_user.profile.avatar.url }}" alt="頭像">
     {% else %}
       <img class="avatar" src="/static/img/Defuser.png" alt="預設頭像" />
     {% endif %}
