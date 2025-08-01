@@ -26,5 +26,6 @@ urlpatterns = [
     path('crop/', shop_crop_view, name='shop_crop_view'),
     path('crop/delete/', delete_cropped_image, name='delete_cropped_image'),
     path('crop/select/', select_cropped_images, name='select_cropped_images'),
+    path('api/crop-image/', crop_image_api, name='crop_image_api'), #js呼叫使用
 ]
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
