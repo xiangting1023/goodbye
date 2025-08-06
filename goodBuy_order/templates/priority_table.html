@@ -8,9 +8,12 @@
     <link rel="stylesheet" href="{% static 'css/priority_table.css' %}">
     {% include 'common/header.html' %}
 </head>
-<body class="container mt-4">
-    <div class="main-content">
-        <h2>{{ shop.name }} - 
+<body>
+    <div class="container mt-4">
+        <!-- 標題決定 -->
+        <h2 class="title-with-back title">
+            <a href="{% url 'shop' shop.id %}" class="btn btn-outline-secondary me-3">&larr;</a>
+            {{ shop.name }} - 
             {% if shop.purchase_priority_id == 2 %}
                 金額多帶優先表
             {% elif shop.purchase_priority_id == 3 %}
@@ -18,33 +21,44 @@
             {% endif %}
         </h2>
 
-        <div class="table-responsive mt-3">
-            <table class="table table-bordered text-center align-middle">
-                <thead>
-                    <tr>
-                        <th>買家名稱</th>
-                        <th class="{% if priority_mode == 'amount' %}highlight-pink{% else %}highlight-gray{% endif %}">總金額</th>
-                        <th class="{% if priority_mode == 'quantity' %}highlight-pink{% else %}highlight-gray{% endif %}">總數量</th>
-                        {% for product in product_list %}
-                            <th>{{ product.name }}</th>
-                        {% endfor %}
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for buyer in buyers %}
+        <div class="main-content">
+
+            <div class="table-responsive priority-wrapper">
+                <table class="table table-bordered text-center align-middle">
+                    <thead>
                         <tr>
-                            <td>{{ buyer.username }}</td>
+                            <th>買家名稱</th>
+                            <th class="{% if priority_mode == 'amount' %}highlight-pink{% else %}highlight-gray{% endif %}">總金額</th>
+                            <th class="{% if priority_mode == 'quantity' %}highlight-pink{% else %}highlight-gray{% endif %}">總數量</th>
                             {% for product in product_list %}
-                                <td>{{ buyer.product_quantities|get_item:product.id|default:0 }}</td>
+                                <th>{{ product.name }}</th>
                             {% endfor %}
-                            <td class="{% if priority_mode == 'amount' %}highlight-pink{% else %}highlight-gray{% endif %}">{{ buyer.total_amount }}</td>
-                            <td class="{% if priority_mode == 'quantity' %}highlight-pink{% else %}highlight-gray{% endif %}">{{ buyer.total_qty }}</td>
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        {% for buyer in buyers %}
+                            <tr>
+                                <td>{{ buyer.username }}</td>
+                                {% for product in product_list %}
+                                    <td>{{ buyer.product_quantities|get_item:product.id|default:0 }}</td>
+                                {% endfor %}
+                                <td class="{% if priority_mode == 'amount' %}highlight-pink{% else %}highlight-gray{% endif %}">{{ buyer.total_amount }}</td>
+                                <td class="{% if priority_mode == 'quantity' %}highlight-pink{% else %}highlight-gray{% endif %}">{{ buyer.total_qty }}</td>
+                            </tr>
+                        {% endfor %}
+                        {# 若不足9筆，補空白列 #}
+                        {% for _ in "123456789"|slice:":9"|make_list %}
+                            {% if forloop.counter > buyers|length %}
+                                <tr>
+                                    <td colspan="{{ product_list|length|add:3 }}">-</td>
+                                </tr>
+                            {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
-    </div>
+    <div>
 </body>
 <script src="{% static 'js/cover.js' %}"></script>
 </html>
