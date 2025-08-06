@@ -36,14 +36,16 @@
 }
 
 .menu:not(.active) {
-    left: -290px;
+    left: -400px;
 }
-
+.h10{
+    padding: 10px;
+}
 .menu .user-info1 {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 25px 16px 16px 18px;
+    padding: 3px 16px 16px 18px;
     border-bottom: 1.5px solid #bfd6e9;
     background: #dde9f4;
 }
@@ -69,6 +71,7 @@
     color: #174c6d;
     letter-spacing: 2px;
 }
+
 .menu .user-info1 .name-edit a {
     font-size: 13px;
     color: #0b2339;
@@ -83,7 +86,7 @@
     flex-direction: column;
     gap: 0;
     margin: 0 0 12px 0;
-    padding: 0 0;
+    padding: 20px 0 0 0;
     background: none;
 }
 
@@ -113,7 +116,7 @@
 /* 分隔線 */
 .menu hr {
     border: none;
-    border-bottom: 1.5px solid #0e416a;
+    border-bottom: 2px solid #3c3e3f;
     margin: 10px 0 4px 0;
 }
 
@@ -575,15 +578,15 @@
 }
 
 /* 登入後樣式 */
-.menu .user-info1 {
+/* .menu .user-info1 {
     display: flex;
-    flex-direction: row; /* 外層橫排 */
-    align-items: center; /* 垂直置中 */
-    gap: 10px; /* 頭像跟文字之間距離 */
+    flex-direction: row; 
+    align-items: center; 
+    gap: 10px; 
     margin-bottom: 10px;
     margin-left: 5%;
     margin-top: 8%;
-}
+} */
 
 .menu .user-info1 img.avatar {
     width: 90px;
