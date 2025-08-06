@@ -58,7 +58,8 @@ def wantByUserId_many(request, user):
 # -------------------------
 # 收物帖查詢 - want_id
 # -------------------------
-@want_exists_and_not_blacklisted()
+@want_exists_required
+@blacklist_check(lambda want: want.user, msg='你已被此使用者封鎖，無法查看', context_name='want')
 def wantById_one(request, want):
     # 記錄點擊是否為推薦，做推送記錄
     record_want_click(request, want)
