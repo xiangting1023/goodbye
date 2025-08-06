@@ -13,6 +13,8 @@
   <div class="container py-4">
     <h2 class="fw-bold mb-4 cart-title">購物車</h2>
     <p class="text-muted mb-4" id="cart-count">已選取 0 個商品</p>
+
+    <!-- 刪除勾選項目的表單 -->
     <form method="POST" action="{% url 'delete_multiple_cart_items' %}" id="cart-form">
       {% csrf_token %}
 
@@ -39,7 +41,8 @@
             {% for entry in group.items %}
               <div class="cart-item row align-items-center py-2 border-top">
                 <div class="col-1 text-center">
-                  <input type="checkbox" class="form-check-input item-checkbox" name="cart_ids" value="{{ entry.cart.id }}">
+                  <!-- 勾選送出結帳用 -->
+                  <input type="checkbox" class="form-check-input item-checkbox" value="{{ entry.cart.id }}">
                 </div>
                 <div class="col-2">
                   {% if entry.product.img %}
@@ -66,13 +69,25 @@
           <!-- 小計與結帳 -->
           <div class="d-flex justify-content-end align-items-center mt-3">
             <div class="me-3 fw-bold text-danger">總計：<span class="group-total">0$</span></div>
-            <button type="submit" class="btn btn-danger">去結帳</button>
           </div>
         </div>
       {% endfor %}
     </form>
+
+    <!-- 結帳專用表單（整頁只留一個） -->
+    <form method="POST" action="{% url 'checkout' %}" id="checkout-form">
+      {% csrf_token %}
+    </form>
+
+    <!-- 勾選送出按鈕 -->
+    <div class="text-end mt-4">
+      <button type="button" id="checkout-button" class="btn btn-primary">
+        結帳勾選商品
+      </button>
+    </div>
   </div>
 
+  <!-- 引入你的 JS（內部已綁定 checkout-button） -->
   <script src="{% static 'js/cart.js' %}"></script>
 </body>
 </html>

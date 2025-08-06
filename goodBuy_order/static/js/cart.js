@@ -122,5 +122,33 @@ document.addEventListener("DOMContentLoaded", function () {
   updateCartCount() // 初始化時更新一次
   }
 
+  document.addEventListener("DOMContentLoaded", function () {
+  const checkoutForm = document.getElementById("checkout-form");
+  const checkoutButton = document.getElementById("checkout-button");
+
+  if (checkoutForm && checkoutButton) {
+    checkoutButton.addEventListener("click", function () {
+      // 清空表單內容，只保留 CSRF
+      checkoutForm.innerHTML = `{% csrf_token %}`;
+
+      const checkedBoxes = document.querySelectorAll(".item-checkbox:checked");
+      if (checkedBoxes.length === 0) {
+        alert("請先勾選要結帳的商品！");
+        return;
+      }
+
+      checkedBoxes.forEach((box) => {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = "cart_ids";
+        input.value = box.value;
+        checkoutForm.appendChild(input);
+      });
+
+      checkoutForm.submit();
+      });
+    }
+  });
+
 });
 

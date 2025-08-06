@@ -6,7 +6,6 @@ from django.db.models import F, Sum,Prefetch
 from collections import defaultdict
 from django.utils import timezone
 from django.urls import reverse
-
 from goodBuy_shop.models import *
 from goodBuy_web.models import *
 from .rush_view import maybe_extend_rush
