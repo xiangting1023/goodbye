@@ -35,7 +35,8 @@ def create_comment(request, order):
 # -------------------------
 # 顯示賣家評論和平均評價
 # -------------------------
-@user_exists_and_not_blacklisted()
+@user_exists_required
+@blacklist_check(lambda user: user, msg='你已被此使用者封鎖，無法查看', context_name='user')
 def view_seller_comments(request, user):
     rank_filter = request.GET.get('rank')  # rank篩選
     order_param = request.GET.get('order')  # 時間排序
