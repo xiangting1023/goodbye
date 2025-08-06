@@ -148,4 +148,45 @@ def my_rush_status_in_intent(request, shop, intent):
                                                             'total_price': total_price,
                                                             'target_summary': target_summary
                                                             })
+# -------------------------
+# 多帶進行中 - 購買優先表格
+# -------------------------
+@login_required
+def purchase_priority_table(request, shop_id):
+    #找不到就拋 404
+    shop = get_object_or_404(Shop, id=shop_id)
+    priority_mode = 'amount' if shop.purchase_priority_id == 2 else 'quantity'
+    title = "金額多帶優先表格" if priority_mode == 'amount' else "數量多帶優先表格"
 
+    products = Product.objects.filter(shop=shop, is_delete=False)
+    product_ids = list(products.values_list('id', flat=True))
+    orders = Order.objects.filter(shop=shop, order_state__gte=2)  # 假設訂單狀態 2 以上為已下單
+
+    buyer_map = {}
+    for order in orders:
+        user = order.buyer
+        if user.id not in buyer_map:
+            buyer_map[user.id] = {
+                'username': user.username,
+                'total_qty': 0,
+                'total_amount': 0,
+                'product_quantities': {product.id: 0 for product in products},
+            }
+
+        po_list = ProductOrder.objects.filter(order=order, product_id__in=product_ids)
+        for po in po_list:
+            idx = product_ids.index(po.product_id)
+            buyer_map[user.id]['product_quantities'][po.product_id] += po.qty
+            buyer_map[user.id]['total_qty'] += po.qty
+            buyer_map[user.id]['total_amount'] += po.qty * po.product.price
+
+    buyers = list(buyer_map.values())
+    buyers.sort(key=lambda x: x['total_amount' if priority_mode == 'amount' else 'total_qty'], reverse=True)
+
+    return render(request, 'priority_table.html', {
+        'shop': shop,
+        'buyers': buyers,
+        'product_list': products,
+        'priority_mode': priority_mode,
+        'priority_title': title
+    })

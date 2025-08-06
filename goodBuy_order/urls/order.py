@@ -7,4 +7,5 @@ urlpatterns = [
     path('payment_records/', my_payment_records, name='my_payment_records'),
     path('rush/shops/', my_rush_shops, name='my_rush_shops'),
     path('rush/<int:shop_id>/<int:intent_id>/', my_rush_status_in_intent, name='my_rush_status_in_intent'),
+    path('priority/<int:shop_id>/', purchase_priority_table, name='priority_table'),
 ]

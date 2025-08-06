@@ -15,7 +15,7 @@ body {
 /* 卡片樣式 */
 .card {
     background-color: #fff;
-    border: 2px solid #ff69b4;
+    border: 2px solid #ffd6e0;
     border-radius: 8px;
     box-shadow: 0 0 8px rgba(0,0,0,0.05);
     padding: 20px;
