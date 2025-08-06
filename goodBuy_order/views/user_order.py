@@ -157,6 +157,7 @@ def checkout(request):
 @login_required(login_url='login')
 def checkout_step1(request):
     cart_ids = request.POST.getlist('cart_ids') if request.method == 'POST' else []
+    
     product_id = request.GET.get('product_id')
     quantity = int(request.GET.get('quantity', 1))
 
@@ -174,7 +175,7 @@ def checkout_step1(request):
             messages.error(request, '購物車資料無效')
             return redirect('cart')
         for item in cart_items:
-            shop_groups[item.product.shop].append({'product': item.product, 'quantity': item.amount})
+            shop_groups[item.product.shop].append({'product': item.product, 'quantity': item.quantity})
 
     else:
         messages.error(request, '無有效商品')
@@ -227,7 +228,7 @@ def checkout_step1(request):
                 )
 
                 for item in items:
-                    ProductOrder.objects.create(order=order, product=item['product'], amount=item['quantity'])
+                    ProductOrder.objects.create(order=order, product=item['product'], quantity=item['quantity'])
 
                 created_order_ids.append(order.id)
                 messages.success(request, f'{shop.name} 訂單已建立，請選擇付款與地址')
@@ -238,7 +239,7 @@ def checkout_step1(request):
             # 有建立 order → 進入 Step2
             if created_order_ids:
                 request.session['pending_order_ids'] = created_order_ids
-                return redirect('checkout_step2')
+                return redirect('checkout_address_payment')
 
             # 全部是多帶 → 結束流程，不進入 Step2
             return redirect('order_list')
