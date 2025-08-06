@@ -1,9 +1,32 @@
+body{
+  background: #fff9e5 !important;
+  padding-top: 40px;
+}
+
+.main-content {
+    margin-top: 30px !important;
+}
+
+.title{
+    color: #2B5F75;
+    font-weight: bold;
+}
+
+.priority-wrapper {
+    border: 2px solid #f48fb1;
+    padding: 20px;
+    border-radius: 10px;
+    background-color: white;;
+}
+
+h2.title-with-back {
+    margin-top: 100px;
+}
+
 .highlight-pink {
-    background-color: #ffe0eb;
+    background-color: #ffc0cb !important;
 }
+
 .highlight-gray {
-    background-color: #eeeeee;
-}
-.bg-pink {
-  background-color: #ffc0cb !important;
+    background-color: #e0e0e0 !important;
 }
