@@ -1,4 +1,4 @@
-<!-- 我要瘋了 -->
+  <!-- 我要瘋了 -->
   <!-- 在 base.html 或你想要的地方加這段 -->
 <link rel="stylesheet" href="/static/css/header.css">
 <script defer src="/static/js/list.js"></script>
@@ -29,6 +29,10 @@
 
   <!-- 側邊彈出欄 -->
   <nav class="menu" id="menu">
+
+      <a href="{% url 'logout' %}">
+    <button class="logout-btn" aria-label="登出">登出</button>
+  </a>
   {% if request.user.is_authenticated %}
     <div class="user-info1">
       {% if user.profile.avatar %}
@@ -61,6 +65,7 @@
       <li><a href="/want/add/">發布收物帖</a></li>
       <li><a href="#">買方管理</a></li>
     </ul>
+    
     <hr>
 
     <!-- 追蹤清單，支援跳轉 -->
@@ -84,6 +89,7 @@
         <a href="#"><img src="/static/img/facebook.png" alt="Facebook" /></a>
         <a href="#"><img src="/static/img/instagram.png" alt="Instagram" /></a>
         <a href="#"><img src="/static/img/line.png" alt="LINE" /></a>
+        
       </div>
     </div>
   {% else %}

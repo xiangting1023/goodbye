@@ -35,8 +35,29 @@
     flex-direction: column;
 }
 
+.logout-btn{
+    background-color: #add3f8;
+    color: #343434;
+    border-radius: 15px;
+    padding: 8px 20px;    /* 上下 8px、左右 24px（自行調整） */
+    margin-left: auto;
+    border: none;
+    cursor: pointer;
+    display: block;
+    
+           
+}
+.sidebar-bottom {
+    margin-top: auto;
+    padding: 18px 0 10px 16px;
+    font-size: 13px;
+    color: #45637c;
+    background: none;
+    border-top: 1.5px solid #bfd6e9;
+}
+
 .menu:not(.active) {
-    left: -400px;
+    left: -600px;
 }
 .h10{
     padding: 10px;
@@ -45,9 +66,9 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 3px 16px 16px 18px;
+    padding: 20px 16px 16px 18px;
     border-bottom: 1.5px solid #bfd6e9;
-    background: #dde9f4;
+    background: transparent;
 }
 
 .menu .user-info1 img.avatar {
@@ -315,6 +336,8 @@
     gap: 20px;
     padding: 30px 0;
   }
+
+
   
   .defuser {
     width: 80px;
