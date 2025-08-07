@@ -16,6 +16,7 @@ from utils.decorators_shortcuts import user_exists_required
 def view_profile(request, user):
     profile_user = user
     is_blocked = False
+    block_reason = None
 
     # === 黑名單判斷 ===
     if request.user != profile_user:
