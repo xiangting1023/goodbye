@@ -3,7 +3,7 @@ from goodBuy_web.models import *
 from django.contrib.auth import  authenticate,login,logout
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-
+from django.urls import reverse
 #登入
 def logins(request):
     if request.user.is_active:
@@ -53,6 +53,7 @@ def register(request):
         u = User.objects.create_user(username=username, password=password, email=email)
         u.save()
         return redirect('login')
+        
     return render(request,'common/register.html')
 
 #登出
@@ -163,11 +164,10 @@ def editProfile(request):
             address.city = address_city
             address.address = address_detail
             address.save()
-
-
+            
         profile.save()
-        messages.success(request, '個人資料已成功更新')
-        return redirect('editprofile')
+        next_url = request.GET.get('next') or request.POST.get('next') or reverse('editprofile')
+        return redirect(next_url)
 
     return render(request, 'common/edit_profile.html',{ 
         'user_address': user_address,

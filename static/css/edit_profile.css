@@ -24,7 +24,8 @@ body{
     background-color: #dcdcdc;
     font-weight: bold;
     padding: 10px 20px;
-    font-size: 16px;
+    font-size: 26px;
+    font-weight: bolder;
 }
 
 /* 白底內容區 */
@@ -62,11 +63,12 @@ body{
 
 /* 頭像圖片樣式 */
 .profile-picture img {
-    width: 150px;
-    height: 150px;
+    width: 125px;
+    height: 125px;
     border-radius: 50%;
     border: 1px solid #000000;
     margin-bottom: 10px;
+    margin-left: 150px;
 }
 
 /* 提交按鈕區 */
@@ -95,9 +97,9 @@ body{
 /* 更換頭像按鈕 */
 .avatar-upload-btn {
     display: inline-block;
-    width: 150px;
-    height: 50px;
-    line-height: 50px;
+    width: 125px;
+    height: 40px;
+    line-height: 35px;
     background-color: #F7D5DF;
     border: 2px solid #F4A7B9;
     border-radius: 25px;
