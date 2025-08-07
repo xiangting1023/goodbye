@@ -59,13 +59,13 @@ def homePage(request):
 
     #篩選
     if request.user.is_authenticated:
-        shops = get_hot_shops(user=request.user, request=request, limit=10)
-        wants = get_hot_wants(user=request.user, request=request, limit=10)
+        shops = personalized_shop_recommendation(request=request, limit=10)
+        wants = get_hot_wants(request=request, limit=10)
 
     else:
         # 未登入使用者直接看熱門
-        shops = get_hot_shops(limit=10)
-        wants = get_hot_wants(limit=10)
+        shops = get_hot_shops(request=request, limit=10)
+        wants = get_hot_wants(request=request, limit=10)
     
     # 篩選條件：只顯示特定 type（sell / want）
     if post_type == 'sell':

@@ -12,78 +12,12 @@
 </head>
 <body>
     <div class="container main-content">
-        <div class="row">
+        <div class="row g-0">
 
-            <!-- 收物帖詳情 -->
-            <div class="col-md-8">
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center bg-light">
-                        <h5 class="mb-0">收物帖詳情</h5>
-                        {% if request.user == want.user %}
-                        <div>
-                            <a href="{% url 'edit_want' want_id=want.id %}" class="btn btn-sm btn-outline-secondary">編輯</a>
-                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
-                                刪除
-                            </button>
-                        </div>
-                        {% endif %}
-                    </div>
-                    <div class="card-body">
-                        
-                        <!-- 收物帖標題 -->
-                        <h4>{{ want.title }}</h4>
-                        <div class="d-flex justify-content-between">
-                            <p class="text-muted mb-2">
-                                <small>發布者: {{ want.user.username }} | 更新於: {{ want.update|date:"Y/m/d H:i" }}</small>
-                            </p>
-                        </div>
-                        
-                        <!-- 標籤 -->
-                        <div class="mb-3">
-                            <div class="d-flex flex-wrap gap-2">
-                                {% for tag in tags %}
-                                    <span class="badge bg-light text-dark">#{{ tag.name }}</span>
-                                {% empty %}
-                                    <span class="text-muted">尚未設定標籤</span>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        
-                        <!-- 圖片區域 -->
-                        <div class="mb-3">
-                            {% for img in want.images.all %}
-                                {% if img.is_cover %}
-                                    <img src="{{ img.img.url }}" alt="{{ want.title }}" class="cover-image img-fluid mb-3" id="main-image">
-                                {% endif %}
-                            {% endfor %}
-
-                            <!-- 縮圖區域 -->
-                            <div class="image-gallery">
-                                {% for img in want.images.all|dictsort:"position" %}
-                                    <div class="gallery-item {% if img.is_cover %}active{% endif %}" data-src="{{ img.img.url }}">
-                                        <img src="{{ img.img.url }}" alt="Gallery Image">
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        
-                        <!-- 收物帖內容 -->
-                        <div class="mb-4">
-                            <h5>詳細描述</h5>
-                            <div class="p-3 bg-light rounded">
-                                {{ want.post_text|linebreaksbr }}
-                            </div>
-                        </div>
-                        
-                    </div>
-                </div>
-            </div>
-            
-            <!-- 右側資訊 -->
-            <div class="col-md-4">
-                <div class="card mb-4">
+            <!-- 上方資訊 -->
+                <div class="card mb-4 no-padding">
                     <div class="card-header bg-light">
-                        <h5 class="mb-0">發布者資訊</h5>
+                        <h5 class="mb-0 d-none">發布者資訊</h5>
                     </div>
                     <div class="card-body">
                         <div class="d-flex align-items-center">
@@ -121,6 +55,83 @@
                 </div>
                 {% endif %}
             </div>
+            
+            <!-- 收物帖詳情 -->             
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center bg-light">
+                        <h5 class="mb-0 d-none">收物帖詳情</h5>
+                        {% if request.user == want.user %}
+                        <div>
+                            <a href="{% url 'edit_want' want_id=want.id %}" class="btn btn-sm btn-outline-secondary">編輯</a>
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                                刪除
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="want-detail-wrapper d-flex">
+
+                            <!-- 左欄：圖片區 -->
+                            <div class="want-image-section d-flex">
+
+                                <div class="image-section mb-3 d-flex gap-3">
+                                    <!-- 縮圖區域 -->
+                                    <div class="image-gallery">
+                                        {% for img in want.images.all|dictsort:"position" %}
+                                            <div class="gallery-item {% if img.is_cover %}active{% endif %}" data-src="{{ img.img.url }}">
+                                                <img src="{{ img.img.url }}" alt="Gallery Image">
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+
+                                <!-- 圖片區域 -->
+                                <div class="mb-3">
+                                    {% for img in want.images.all %}
+                                        {% if img.is_cover %}
+                                            <img src="{{ img.img.url }}" alt="{{ want.title }}" class="cover-image img-fluid mb-3 main-cover-img" id="main-image">
+                                        {% endif %}
+                                    {% endfor %}
+                            </div>
+
+                            <!-- 右欄：文字內容 -->
+                            <div class="want-info-section ms-4">
+
+                                <!-- 收物帖標題 -->
+                                <h4>{{ want.title }}</h4>
+                                <div class="d-flex justify-content-between">
+                                    <p class="text-muted mb-2">
+                                        <small>發布者: {{ want.user.username }} | 更新於: {{ want.update|date:"Y/m/d H:i" }}</small>
+                                    </p>
+                                </div>
+                                    
+                                <!-- 標籤 -->
+                                <div class="mb-3">
+                                    <div class="d-flex flex-wrap gap-2">
+                                        {% for tag in tags %}
+                                            <span class="badge bg-light text-dark">#{{ tag.name }}</span>
+                                        {% empty %}
+                                            <span class="text-muted">尚未設定標籤</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+
+                                <!-- 收物帖內容 -->
+                                <div class="mb-4 ">
+                                    <h5>詳細描述</h5>
+                                    <div class="p-3 bg-light rounded">
+                                        {{ want.post_text|linebreaksbr }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                </div>
+            </div>
+
         </div>
     </div>
     

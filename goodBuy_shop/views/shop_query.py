@@ -162,14 +162,13 @@ def shopBySearch(request, user=None):
 
     if request.user.is_authenticated:
         shops = personalized_shop_recommendation(
-            user=request.user,
+            request=request,
             keywords=[kw],
-            shop_queryset=base_queryset,
             exclude_seen=False,
-            limit=100
+            limit=20
         )
     else:
-        shops = get_hot_shops(limit=100, keyword=kw)
+        shops = get_hot_shops(request, limit=20, keyword=kw)
         if user:
             shops = [s for s in shops if s.owner_id == user.id]
 
