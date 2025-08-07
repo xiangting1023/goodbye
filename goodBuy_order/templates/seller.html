@@ -1,0 +1,36 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>賣方管理</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="{% static 'css/sellerbuyer.css' %}">
+  <script>
+    function showTab(tab) {
+      document.getElementById('seller-content').innerHTML = tabContents[tab];
+    }
+  </script>
+</head>
+<body>
+  <div class="container">
+    <div class="page-title">賣方管理</div>
+    <div class="action-buttons mb-4">
+      <button class="action-btn" onclick="showTab('order')">接單請求</button>
+      <button class="action-btn" onclick="showTab('payment')">付款確認</button>
+      <button class="action-btn" onclick="showTab('shipping')">待出貨</button>
+    </div>
+    <div id="seller-content">
+      {{ tab_order|safe }}
+    </div>
+  </div>
+  <script>
+    // 後端 view 要傳 tab_order, tab_payment, tab_shipping 三段 HTML
+    const tabContents = {
+      order: `{{ tab_order|safe }}`,
+      payment: `{{ tab_payment|safe }}`,
+      shipping: `{{ tab_shipping|safe }}`
+    };
+  </script>
+</body>
+</html>
