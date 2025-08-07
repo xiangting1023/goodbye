@@ -1,0 +1,42 @@
+body{
+    background: #FDF7EC !important;
+    padding: 150px; /* 這行保證 header 不會擋到內容！ */
+}
+
+.checkout-complete-container {
+  min-height: 70vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.checkout-complete-box {
+  background-color: white;
+  padding: 3rem;
+  border-radius: 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  max-width: 600px;
+  width: 100%;
+}
+
+.complete-icon {
+  width: 100px;
+}
+
+.btn-cancel {
+  background-color: white;
+  color: #F4A7B9;
+  border: 2px solid #F4A7B9;
+  padding: 10px 30px;
+  border-radius: 10px;
+  font-weight: bold;
+  margin-right: 10px;
+}
+.btn-confirm {
+  background-color: #F4A7B9;
+  color: white;
+  padding: 10px 30px;
+  border-radius: 10px;
+  border: none;
+  font-weight: bold;
+}

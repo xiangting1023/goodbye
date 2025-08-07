@@ -1,0 +1,91 @@
+{% load static %}
+{% load get_item %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>確認訂單</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="{% static 'css/checkout/step1.css' %}">
+</head>
+<body>
+    <!-- 步驟流程條 -->
+    <body data-checkout-step="1">
+      {% if is_rush_mode %}
+        {% include 'checkout/MoreSteps.html' %}
+      {% else %}
+        {% include 'checkout/steps.html' %}
+      {% endif %}
+    </body>
+    
+    <header>
+      {% include 'common/header.html' %}
+    </header>  
+
+    <div class="container py-4">
+    <!-- 商品區塊 -->
+    <form method="post" action="{% url 'checkout' %}">
+      {% csrf_token %}
+      {% for id in cart_ids %}
+        <input type="hidden" name="cart_ids" value="{{ id }}">
+      {% endfor %}
+
+      {% for shop, items in shop_groups.items %}
+      <div class="confirm-card">
+        <!-- 標題列 -->
+        <div class="card-header title">確認下單商品：</div>
+
+        <!-- 賣家資訊 -->
+        <div class="seller-info">
+          <img src="{{ shop.owner.profile.avatar.url }}" alt="頭像">
+          <span class="fw-bold">{{ shop.owner.username }}</span>
+          <span class="ms-2">-- {{ shop.name }}</span>
+        </div>
+
+        <!-- 商品表格 -->
+        <div class="px-3">
+          <table class="table table-product mb-0">
+            <thead>
+              <tr>
+                <th>圖片</th>
+                <th>名稱</th>
+                <th>價錢</th>
+                <th>數量</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in items %}
+              <tr>
+                <td>
+                  {% if item.product.img %}
+                    <img src="{{ item.product.img.url }}" class="img-thumbnail" width="60">
+                  {% else %}
+                    <span class="text-muted">無圖片</span>
+                  {% endif %}
+                </td>
+                <td>{{ item.product.name }}</td>
+                <td>{{ item.product.price }}$</td>
+                <td>*{{ item.quantity }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+
+          <!-- 小計 -->
+          <div class="summary-total">
+              共 {{ items|length }} 樣，總計：
+              {{ totals_by_shop|get_item:shop.id }}$
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+
+      <!-- 底部按鈕 -->
+      <div class="action-buttons">
+        <a href="{% url 'cart' %}" class="btn-cancel">取消</a>
+        <button type="submit" name="confirm_checkout" class="btn-confirm">下一步</button>
+      </div>
+    </form>
+  </div>
+</body>
+</html>

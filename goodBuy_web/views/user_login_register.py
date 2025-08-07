@@ -3,6 +3,7 @@ from goodBuy_web.models import *
 from django.contrib.auth import  authenticate,login,logout
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.urls import reverse
 #登入
 def logins(request):
     if request.user.is_active:
@@ -52,6 +53,7 @@ def register(request):
         u = User.objects.create_user(username=username, password=password, email=email)
         u.save()
         return redirect('login')
+        
     return render(request,'common/register.html')
 
 #登出
@@ -90,9 +92,14 @@ def change_pass(request):
     
 @login_required
 def editProfile(request):
+    
+    # 獲取當前用戶的個人資料
+    user = request.user
+    profile, created = Profile.objects.get_or_create(user=user) 
+    city_choices = UserAddress.ADDRESS_MODE_CHOICES
+    user_address = UserAddress.active.filter(user=user).first()
+
     if request.method == 'POST':
-        user = request.user
-        profile, created = Profile.objects.get_or_create(user=user) 
 
         # 更新電子郵件
         email = request.POST.get('email')
@@ -133,10 +140,35 @@ def editProfile(request):
         # 更新頭像
         if 'avatar' in request.FILES:
             profile.avatar = request.FILES['avatar']
-
         user.save()
-        profile.save()
-        messages.success(request, '個人資料已成功更新')
-        return redirect('editprofile')
 
-    return render(request, 'common/edit_profile.html')
+        address_name = request.POST.get('address_name')
+        address_phone = request.POST.get('address_phone')
+        address_city = request.POST.get('address_city')
+        address_detail = request.POST.get('address_detail')
+
+        # 先取得或建立使用者地址
+        address, created = UserAddress.objects.get_or_create(
+            user=user,
+            is_delete=False,
+            defaults={
+                'name': address_name,
+                'phone': address_phone,
+                'city': address_city,
+                'address': address_detail
+            }
+        )
+        if not created:
+            address.name = address_name
+            address.phone = address_phone
+            address.city = address_city
+            address.address = address_detail
+            address.save()
+            
+        profile.save()
+        next_url = request.GET.get('next') or request.POST.get('next') or reverse('editprofile')
+        return redirect(next_url)
+
+    return render(request, 'common/edit_profile.html',{ 
+        'user_address': user_address,
+        'city_choices': city_choices,})

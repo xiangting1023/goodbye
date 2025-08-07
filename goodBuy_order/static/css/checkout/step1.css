@@ -1,0 +1,120 @@
+/* checkout_step1.css */
+/* 整個容器外框 */
+body{
+    background: #FDF7EC !important;
+    padding: 150px; /* 這行保證 header 不會擋到內容！ */
+}
+
+.checkout-steps .step {
+  color: #888;
+}
+
+.checkout-steps .step.active {
+  color: #000;
+  font-weight: bold;
+}
+
+.checkout-steps .arrow {
+  color: #aaa;
+}
+
+.checkout-steps {
+  font-weight: bold;
+  font-size: 1.1rem;
+  margin-bottom: 1.5rem;
+}
+
+.checkout-steps div {
+  flex: 1;
+  text-align: center;
+}
+
+.checkout-steps .text-dark {
+  color: #000;
+}
+
+.checkout-steps .text-muted {
+  color: #bbb;
+}
+
+.confirm-card {
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #fff;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.confirm-card .card-header {
+  background-color: #f1f1f1;
+  font-weight: bold;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #ddd;
+}
+
+.seller-info {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+}
+
+.seller-info img {
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  margin-right: 10px;
+}
+
+.table-product thead th {
+  border-top: none;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.table-product tbody tr {
+  border-top: 1px solid #dee2e6;
+}
+
+.table-product img {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.summary-total {
+  font-weight: bold;
+  color: #d9534f;
+  text-align: right;
+  padding: 0.75rem 1rem;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.btn-cancel {
+    background-color: white;
+    color: #F4A7B9;
+    border: 2px solid #F4A7B9;
+    padding: 10px 30px;
+    border-radius: 10px;
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+.btn-confirm {
+    background-color: #F4A7B9;
+    color: white;
+    padding: 10px 30px;
+    border-radius: 10px;
+    border: none;
+    font-weight: bold;
+}
+
+.title{
+  font-size: 26px;
+}

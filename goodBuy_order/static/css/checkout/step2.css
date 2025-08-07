@@ -1,0 +1,129 @@
+body{
+    background: #FDF7EC !important;
+    padding: 150px; /* 這行保證 header 不會擋到內容！ */
+}
+
+body {
+  background-color: #fdf7ed;
+  font-family: "Microsoft JhengHei", sans-serif;
+}
+
+.container {
+  max-width: 700px;
+  margin: 30px auto;
+  padding: 20px;
+}
+
+.progress {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 16px;
+  margin-bottom: 30px;
+}
+
+.progress .step {
+  font-weight: bold;
+  color: #aaa;
+}
+
+.progress .step.current {
+  color: #000;
+}
+
+.progress .step.done {
+  color: #000;
+}
+
+.progress .arrow {
+  margin: 0 8px;
+  color: #aaa;
+}
+
+.block {
+  background-color: #f7f7f7;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.block-header {
+  background-color: #d1d1d1;
+  padding: 10px 15px;
+  font-size: 26px;
+  font-weight: bold;
+}
+
+.block-body {
+  padding: 15px;
+  background-color: #fff;
+}
+
+.block-body label {
+  display: block;
+  margin-top: 10px;
+  font-weight: bold;
+}
+
+.block-body input,
+.block-body select {
+  width: 100%;
+  padding: 8px;
+  margin-top: 5px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.block .hint {
+  font-size: 14px;
+  font-weight: normal;
+  color: #888;
+  margin-left: 10px;
+}
+
+.warning {
+  display: inline-block;
+  color: red;
+  font-size: 14px;
+  margin-left: 10px;
+}
+
+.fallback {
+  font-size: 16px;
+  color: #555;
+  margin-bottom: 10px;
+}
+
+.button-group {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 30px;
+  gap: 10px;
+}
+
+.btn {
+  padding: 10px 30px;
+  font-weight: bold;
+  border-radius: 10px;
+  font-size: 16px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn-cancel {
+  background-color: white;
+  color: #F4A7B9;
+  border: 2px solid #F4A7B9;
+  padding: 10px 30px;
+  border-radius: 10px;
+  font-weight: bold;
+  margin-right: 10px;
+}
+.btn-confirm {
+  background-color: #F4A7B9;
+  color: white;
+  padding: 10px 30px;
+  border-radius: 10px;
+  border: none;
+  font-weight: bold;
+}

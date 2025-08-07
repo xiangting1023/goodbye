@@ -1,0 +1,272 @@
+/* 全局樣式 */
+body {
+    font-family: 'Noto Sans TC', sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #FDF7EC; /* 更淡的粉色漸層背景 */
+    color: #333;
+}
+
+/* 容器樣式 */
+.profile-edit-container {
+    max-width: 800px; /* 調整容器寬度 */
+    margin: 50px auto;
+    padding: 20px;
+    background: #fffff0; /* 白色背景 */
+    border: 2px solid #000000; /* 添加藍色框線 */
+    border-radius: 8px; /* 圓角 */
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); /* 添加陰影 */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* 標題樣式 */
+.profile-edit-container h1 {
+    text-align: center;
+    color: #000000;
+    margin-bottom: 20px;
+}
+
+/* 訊息樣式 */
+.messages {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+.messages li {
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.messages li.error {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.messages li.success {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+/* 表單樣式 */
+form {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    border: none; /* 移除表單框線 */
+}
+
+/* 上半部分：頭像與暱稱、使用者名稱 */
+.form-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+/* 左邊：頭像 */
+.profile-picture {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-right: 20px;
+}
+
+.profile-picture img {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    border: 1px solid #000000;
+    margin-bottom: 10px;
+}
+
+.profile-picture label {
+    background-color:#b3dffc;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+}
+
+.profile-picture label:hover {
+    background-color: #96c9eb;
+}
+
+/* 隱藏預設檔案選擇按鈕 */
+input[type="file"] {
+    display: none;
+}
+
+/* 右邊：暱稱與使用者名稱 */
+.user-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-top: 60px; 
+    padding-left: 10px;
+}
+
+.user-info .form-group {
+    margin-bottom: 10px;
+}
+
+.user-info label {
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 5px;
+    display: block;
+}
+
+.user-info input[type="text"] {
+    width: 80%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.form-bottom {
+    width: 100%; /* 父容器寬度設置為 100% */
+}
+
+/* 下半部分：email、自我介紹和修改密碼 */
+.form-bottom .form-group {
+    margin-bottom: 20px; /* 與下一個表單項目保持間距 */
+}
+
+.form-bottom label {
+    font-size: 14px; /* 調整欄位名稱字體大小 */
+    color: #555; /* 字體顏色 */
+    margin-bottom: 5px; /* 與輸入框的間距 */
+    display: block; /* 確保欄位名稱在輸入框上方 */
+    
+}
+
+.form-bottom input[type="text"],
+.form-bottom input[type="email"],
+.form-bottom input[type="password"],
+.form-bottom textarea {
+    width: 98%; /* 設置為滿版 */
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    resize: none; /* 禁用 textarea 的調整大小功能 */
+}
+
+textarea {
+    height: 100px; /* 自我介紹的高度 */
+}
+
+/* 按鈕樣式 */
+button {
+    background-color: #b3dffc;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    width: 100%;
+    margin-top: 20px;
+}
+
+button:hover {
+    background-color: #96c9eb;
+}
+
+/* 返回主頁連結樣式 */
+a.Options {
+    display: block;
+    text-align: center;
+    margin-top: 20px;
+    color: #4c77ec;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+a.Options:hover {
+    text-decoration: underline;
+}
+/* RWD */
+/* 平板裝置 (601px - 1024px) */
+@media (max-width: 1024px) and (min-width: 601px) {
+    .profile-edit-container {
+        max-width: 90%; /* 調整容器寬度 */
+        padding: 15px;
+    }
+
+    .form-top {
+        flex-direction: column; /* 垂直排列 */
+        align-items: center;
+    }
+
+    .profile-picture {
+        margin-right: 0; /* 移除右邊距 */
+        margin-bottom: 20px; /* 增加下方間距 */
+    }
+
+    .user-info input[type="text"] {
+        width: 100%; /* 滿版寬度 */
+    }
+
+    .form-bottom input[type="text"],
+    .form-bottom input[type="email"],
+    .form-bottom input[type="password"],
+    .form-bottom textarea {
+        width: 100%; /* 滿版寬度 */
+    }
+}
+
+/* 手機版 (max-width: 600px) */
+@media (max-width: 600px) {
+    .profile-edit-container {
+        max-width: 100%; /* 滿版寬度 */
+        padding: 10px;
+    }
+
+    .form-top {
+        flex-direction: column; /* 垂直排列 */
+        align-items: center;
+    }
+
+    .profile-picture {
+        margin-right: 0; /* 移除右邊距 */
+        margin-bottom: 15px; /* 增加下方間距 */
+    }
+
+    .user-info {
+        padding-top: 0; /* 移除上方間距 */
+        padding-left: 0; /* 移除左邊距 */
+    }
+
+    .user-info input[type="text"] {
+        width: 100%; /* 滿版寬度 */
+    }
+
+    .form-bottom input[type="text"],
+    .form-bottom input[type="email"],
+    .form-bottom input[type="password"],
+    .form-bottom textarea {
+        width: 100%; /* 滿版寬度 */
+    }
+
+    button {
+        font-size: 14px; /* 調整按鈕字體大小 */
+        padding: 8px 12px; /* 調整按鈕內距 */
+    }
+
+    a.Options {
+        font-size: 12px; /* 調整返回主頁連結字體大小 */
+    }
+}

@@ -1,0 +1,32 @@
+body{
+  margin-top: 10px;
+}
+
+.checkout-steps-wrapper {
+  margin-bottom: 5px;
+}
+
+.checkout-steps {
+  max-width: 800px;   /* 整條流程最多寬 500px */
+  width: 100%;
+  justify-content: space-between;
+  font-size: 1.1rem;
+  font-weight: 800;
+  margin-left: 400px;
+  font-size: 32px;
+}
+
+.checkout-steps .step {
+  color: #aaa;
+  white-space: nowrap;
+}
+
+.checkout-steps .step.active {
+  color: #000;
+  font-weight: bold;
+}
+
+.checkout-steps .arrow {
+  margin: 0 10px;
+  color: #ccc;
+}

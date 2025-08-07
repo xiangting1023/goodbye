@@ -69,7 +69,6 @@ h1 {
 .product-note { color: #888; font-size: 0.98em;}
 input[type="checkbox"] {
     transform: scale(1.18);
-    accent-color: #3498db;
 }
 input[type="number"] {
     width: 46px;
@@ -81,20 +80,7 @@ input[type="number"] {
     font-size: 1em;
     background: #fafdff;
 }
-button, input[type="submit"] {
-    background: #3498db;
-    color: #fff;
-    border: none;
-    border-radius: 7px;
-    padding: 4px 10px;
-    font-size: 1em;
-    margin: 0 2px;
-    cursor: pointer;
-    transition: background 0.18s;
-}
-button:hover, input[type="submit"]:hover {
-    background: #1969ad;
-}
+
 .col-total {
     font-weight: 700;
     color: #b14505;
@@ -115,4 +101,13 @@ button:hover, input[type="submit"]:hover {
     .cart-header-row, .cart-product-row { flex-direction: column; align-items: flex-start;}
     .cart-product-img { margin-bottom: 7px;}
     .col-check, .col-unit, .col-qty, .col-total, .col-op { min-width: 0; width: 100%;}
+}
+
+.btn-confirm {
+    background-color: #F4A7B9 !important;
+    color: white !important;
+    padding: 10px 30px; 
+    border-radius: 10px;
+    border: none;
+    font-weight: bold;
 }
