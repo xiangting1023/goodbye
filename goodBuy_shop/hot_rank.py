@@ -10,7 +10,8 @@ from goodBuy_shop.shop_utils import shop_is_active
 from goodBuy_web.utils import get_blocked_user_ids
 
 
-def get_hot_shops(limit=None, days=7, owner=None, keyword=None, tag=None, user=None, request=None):
+def get_hot_shops(limit=None, days=7, owner=None, keyword=None, tag=None, request=None):
+    user = request.user if request else None
     now = timezone.now()
     recent = now - timedelta(days=days)
     scores_raw = defaultdict(lambda: {'sales': 0, 'views': 0, 'new': 0})
