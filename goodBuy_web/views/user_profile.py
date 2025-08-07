@@ -32,9 +32,12 @@ def view_profile(request, user):
             block_reason = "對方已封鎖您，無法查看主頁"
         else:
             block_reason = None
-        
-    user_shops = Shop.objects.filter(owner=profile_user)
-    user_wants = Want.objects.filter(user=profile_user)
+    if request.user.is_authenticated:
+        user_shops = get_hot_shops(user=request.user, owner=profile_user, request=request, limit=10)
+        user_wants = get_hot_wants(user=request.user, owner=profile_user, request=request, limit=10)
+    else:
+        user_shops = get_hot_shops(user=request.user, owner=profile_user, request=request, limit=10)
+        user_wants = get_hot_wants(user=request.user, owner=profile_user, request=request, limit=10)
 
     # 幫每個 shop 補 cover_img、價格等欄位
     for shop in user_shops:
@@ -73,14 +76,13 @@ def view_profile(request, user):
 
 def user_more(request, user_id, tab):
     profile_user = get_object_or_404(User, id=user_id)
-    
     if tab == 'shops':
         if request.user.is_authenticated and request.user == profile_user:
-            items = Shop.objects.filter(owner=profile_user)
+            items = Shop.objects.filter(owner=profile_user).order_by('-update')
         elif request.user.is_authenticated:
-            items = personalized_shop_recommendation(user=request.user, limit=10)
+            items = get_hot_shops(user=request.user, owner=profile_user, request=request, limit=10)
         else:
-            items = get_hot_shops(user=profile_user)
+            items = get_hot_shops(owner=profile_user, request=request, limit=10)
         
         for shop in items:
             shop.cover_img = ShopImg.objects.filter(shop=shop, is_cover=True).first()
@@ -95,11 +97,11 @@ def user_more(request, user_id, tab):
         is_shop = True
     elif tab == 'wants':
         if request.user.is_authenticated and request.user == profile_user:
-            items = Want.objects.filter(owner=profile_user)
+            items = Want.objects.filter(owner=profile_user).order_by('-date')
         elif request.user.is_authenticated:
-            items = personalized_want_recommendation(user=request.user, limit=10)
+            items = get_hot_wants(user=request.user, owner=profile_user, request=request, limit=10)
         else:
-            items = get_hot_wants(user=profile_user)
+            items = get_hot_wants(owner=profile_user, request=request, limit=10)
 
         for want in items:
             want.cover_img = WantImg.objects.filter(want=want, is_cover=True).first()

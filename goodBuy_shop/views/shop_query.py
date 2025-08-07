@@ -36,21 +36,14 @@ def record_shop_click(request, shop):
 def shopByUserId_many(request, user):
     # 本人 ➜ 顯示全部商店（不排序）
     if request.user.is_authenticated and request.user == user:
-        shops = shopInformation_many(Shop.objects.filter(owner=user))
+        shops = shopInformation_many()
         return render(request, '自己主頁賣場', locals())
 
     # 非本人+有登入 ➜ 只顯示公開商店 + 推薦排序
     if request.user.is_authenticated:
-        base_queryset = Shop.objects.filter(owner=user, permission__id=1)
-        recommended = personalized_shop_recommendation(
-            user=request.user,
-            shop_queryset=base_queryset,
-            limit=100,
-            exclude_seen=False
-        )
+        recommended = get_hot_shops(user=request.user, owner=user, request=request, limit=10)
     else:
-        base_queryset = Shop.objects.filter(owner=user, permission__id=1)
-        hot_shops = get_hot_shops(owner=user)
+        hot_shops = get_hot_shops(owner=user, request=request, limit=10)
         recommended = [s for s in hot_shops if s.owner_id == user.id]
 
     shops = shopInformation_many(recommended)
