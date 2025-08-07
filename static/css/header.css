@@ -35,8 +35,17 @@
     flex-direction: column;
 }
 
+.sidebar-bottom {
+    margin-top: auto;
+    padding: 18px 0 10px 16px;
+    font-size: 13px;
+    color: #45637c;
+    background: none;
+    border-top: 1.5px solid #bfd6e9;
+}
+
 .menu:not(.active) {
-    left: -400px;
+    left: -600px;
 }
 .h10{
     padding: 10px;
