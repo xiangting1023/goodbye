@@ -30,7 +30,20 @@ def view_cart(request):
         product = item.product
         shop = product.shop
 
-        is_out_of_stock = product.stock <= 0
+        is_rush_buy = shop.purchase_priority_id in [2, 3]
+        claimed_quantity = 0
+        remaining_quantity = product.stock
+
+        # 搶購商店且已登入 → 顯示已搶與剩餘可搶數量
+        if is_rush_buy and request.user.is_authenticated:
+            claimed_quantity = (
+                IntentProduct.objects
+                .filter(product=product, intent__user=request.user, intent__shop=shop)
+                .aggregate(total=Sum('quantity'))['total'] or 0
+            )
+            remaining_quantity = max(product.stock - claimed_quantity, 0)
+
+        is_out_of_stock = remaining_quantity <= 0
 
         shop_id = shop.id
         if shop_id not in shop_latest_update or item.update > shop_latest_update[shop_id]:
@@ -40,15 +53,21 @@ def view_cart(request):
             'shop': shop,
             'product': product,
             'cart': item,
-            'is_out_of_stock': is_out_of_stock, #是否超出庫存
-            'is_shop_closed': shop.is_end,  #商店是否關閉
+            'is_out_of_stock': is_out_of_stock,  # 是否超出庫存
+            'is_shop_closed': shop.is_end,       # 商店是否關閉
+            'claimed_quantity': claimed_quantity,   # 已搶數量
+            'remaining_quantity': remaining_quantity, # 剩餘可搶數量（form max 可用這個）
         })
 
     grouped_data = defaultdict(list)
     for entry in cart_data:
         grouped_data[entry['shop'].id].append(entry)
 
-    sorted_shop_ids = sorted(grouped_data.keys(), key=lambda sid: shop_latest_update[sid], reverse=True)
+    sorted_shop_ids = sorted(
+        grouped_data.keys(),
+        key=lambda sid: shop_latest_update[sid],
+        reverse=True
+    )
 
     grouped_cart = []
     for shop_id in sorted_shop_ids:

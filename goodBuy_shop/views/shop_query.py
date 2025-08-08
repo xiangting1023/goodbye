@@ -64,24 +64,27 @@ def shopById_one(request, shop):
 
     is_rush_buy = shop.purchase_priority_id in [2, 3]
 
-    products = list(Product.objects.filter(shop=shop))
-    
+    products = list(Product.objects.select_related('shop').filter(shop=shop))
+
     if is_rush_buy and request.user.is_authenticated:
+        # 搶購 + 已登入：顯示「自己還能搶多少」
         for product in products:
-            user_claimed = IntentProduct.objects.filter(
-                product=product,
-                intent__user=request.user,
-                intent__shop=shop
-            ).aggregate(total=Sum('quantity'))['total'] or 0
-
+            user_claimed = (
+                IntentProduct.objects
+                .filter(product=product, intent__user=request.user, intent__shop=shop)
+                .aggregate(total=Sum('quantity'))['total'] or 0
+            )
             remaining_quantity = max(product.stock - user_claimed, 0)
-            product.remaining_quantity = remaining_quantity
-            product.claimed_quantity = user_claimed
-            product.is_out_of_stock = 1 if remaining_quantity <= 0 else 0
 
+            product.claimed_quantity = user_claimed
+            product.remaining_quantity = product.effective_stock_for(request.user)
+            product.is_out_of_stock = 1 if remaining_quantity <= 0 else 0
     else:
+        # 非搶購 或 未登入：直接用庫存顯示
         for product in products:
-            product.is_out_of_stock = 1 if product.stock <= 0 else 0
+            product.claimed_quantity = 0
+            product.remaining_quantity = max(product.stock, 0)
+            product.is_out_of_stock = 1 if product.remaining_quantity <= 0 else 0
 
     products.sort(key=lambda p: (p.is_out_of_stock, p.id))
     announcements = ShopAnnouncement.objects.filter(shop=shop).order_by('-update')
