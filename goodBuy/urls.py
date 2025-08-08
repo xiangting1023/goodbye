@@ -24,7 +24,7 @@ urlpatterns = [
 
     path('order/', include('goodBuy_order.urls.order')),
     path('order/action/', include('goodBuy_order.urls.order_action')),
-    path('order/payment/', include('goodBuy_order.urls')),
+    path('order/payment/', include('goodBuy_order.urls.payment')),
     path('cart/', include('goodBuy_order.urls.cart')),
     path('comment/', include('goodBuy_order.urls.comment')),
 
