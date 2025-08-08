@@ -77,7 +77,8 @@ def order_detail(request, order):
         deposit_amount = order.total * deposit_ratio // 100
         tail_amount = (order.total - deposit_amount) + (order.second_supplement or 0)
 
-    return render(request, 'order_detail.html', {'product_orders': product_orders, 
+    return render(request, 'order_detail.html', {'order':order,
+                                                'product_orders': product_orders, 
                                                 'payment':payments,
                                                 'deposit_amount':deposit_amount,
                                                 'tail_amount':tail_amount})
