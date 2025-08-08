@@ -59,7 +59,7 @@ def homePage(request):
 
     #篩選
     if request.user.is_authenticated:
-        shops = personalized_shop_recommendation(request=request, limit=10)
+        shops = get_hot_shops(request=request, limit=10)
         wants = get_hot_wants(request=request, limit=10)
 
     else:

@@ -167,6 +167,15 @@ def checkout_step1(request):
     # 解析購買資料
     if product_id:
         product = get_object_or_404(Product, id=product_id, is_delete=False)
+        if product.stock < quantity:
+            messages.error(request, f'{product.name} 庫存不足')
+            return redirect('cart')
+        if product.shop.permission_id != 1:
+            messages.error(request, f'{product.shop.name} 商店已下架')
+        if product.shop.is_end:
+            messages.error(request, f'{product.shop.name} 商店尚未開啟或已結束')
+            return redirect('cart')
+        
         shop_groups[product.shop].append({'product': product, 'quantity': quantity})
 
     elif cart_ids:
@@ -175,6 +184,15 @@ def checkout_step1(request):
             messages.error(request, '購物車資料無效')
             return redirect('cart')
         for item in cart_items:
+            if item.product.stock < quantity:
+                messages.error(request, f'{item.product.name} 庫存不足')
+                return redirect('cart')
+            if item.product.shop.permission_id != 1:
+                messages.error(request, f'{item.product.shop.name} 商店已下架')
+            if item.product.shop.is_end:
+                messages.error(request, f'{item.product.shop.name} 商店尚未開啟或已結束')
+                return redirect('cart')
+            
             shop_groups[item.product.shop].append({'product': item.product, 'quantity': item.quantity})
 
     else:
