@@ -46,7 +46,13 @@ def get_hot_shops(limit=None, days=7, owner=None, keyword=None, tag=None, reques
 
     # 若不是「自己看自己的店」，只推「未截止且公開」的店
     if not (owner and user and owner == user):
-        qs = qs.filter(start_time__lte=now, end_time__gte=now, permission__id=1)
+        NEW_DAYS = 3
+        qs = qs.filter(
+            Q(permission__id=1) & (
+                Q(start_time__lte=now, end_time__gte=now) |            # 正在進行
+                Q(update__gte=now - timedelta(days=NEW_DAYS))          # 新店(近3天更新/新增)
+            )
+        )
 
     # 沒候選就直接回傳空 QuerySet
     if not qs.exists():
@@ -95,9 +101,10 @@ def get_hot_shops(limit=None, days=7, owner=None, keyword=None, tag=None, reques
         )
 
     print(f"Hot shops scores: {final_scores}")
-    # -------------------------
 
-    # 如果是「自己看自己的店」→ 先把「未截止公開」放前面，再依分數
+    # -------------------------
+    # 排序
+    # -------------------------
     if owner and user and owner == user:
         def active_flag(s):
             return int(s.start_time <= now <= s.end_time and s.permission_id == 1)
@@ -113,9 +120,19 @@ def get_hot_shops(limit=None, days=7, owner=None, keyword=None, tag=None, reques
     else:
         ordered_ids = sorted(shop_ids, key=lambda sid: final_scores.get(sid, 0), reverse=True)
 
+    # -------------------------
+    # 補滿到 limit：把還沒進來的候選（多半是 0 分）依目前規則接在後面
+    # -------------------------
     if limit:
+        if len(ordered_ids) < limit:
+            # 可能因為排序前的條件造成不足；把剩下候選補上（通常是 0 分）
+            fallback_ids = [sid for sid in shop_ids if sid not in set(ordered_ids)]
+            ordered_ids += fallback_ids
+        # 最後再切片
         ordered_ids = ordered_ids[:limit]
 
+    if not qs.exists():
+        qs = Shop.objects.filter(permission__id=1).order_by('-update')[: max(limit or 20, 20)]
     # -------------------------
     # 回傳「有順序」的 QuerySet
     # -------------------------
