@@ -242,7 +242,7 @@ def deleteShop(request, shop):
     shop.permission = Permission.objects.get(id=3)
     shop.save()
     messages.success(request, '賣場已刪除')
-    return redirect('home')
+    return redirect('view_profile', user_id=shop.owner.id)
 # -------------------------
 # 商店刪除圖片
 # -------------------------

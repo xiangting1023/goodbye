@@ -167,6 +167,15 @@ def checkout_step1(request):
     # 解析購買資料
     if product_id:
         product = get_object_or_404(Product, id=product_id, is_delete=False)
+        if product.stock < quantity:
+            messages.error(request, f'{product.name} 庫存不足')
+            return redirect('cart')
+        if product.shop.permission_id != 1:
+            messages.error(request, f'{product.shop.name} 商店已下架')
+        if product.shop.is_end:
+            messages.error(request, f'{product.shop.name} 商店尚未開啟或已結束')
+            return redirect('cart')
+        
         shop_groups[product.shop].append({'product': product, 'quantity': quantity})
 
     elif cart_ids:
@@ -174,10 +183,17 @@ def checkout_step1(request):
         if not cart_items:
             messages.error(request, '購物車資料無效')
             return redirect('cart')
-
         for item in cart_items:
-            qty = getattr(item, 'quantity', getattr(item, 'amount', 1))  # ← 兼容兩種欄位名
-            shop_groups[item.product.shop].append({'product': item.product, 'quantity': qty})
+            if item.product.stock < quantity:
+                messages.error(request, f'{item.product.name} 庫存不足')
+                return redirect('cart')
+            if item.product.shop.permission_id != 1:
+                messages.error(request, f'{item.product.shop.name} 商店已下架')
+            if item.product.shop.is_end:
+                messages.error(request, f'{item.product.shop.name} 商店尚未開啟或已結束')
+                return redirect('cart')
+            
+            shop_groups[item.product.shop].append({'product': item.product, 'quantity': item.quantity})
 
     else:
         messages.error(request, '無有效商品')
@@ -254,75 +270,64 @@ def checkout_step1(request):
         created_order_ids = []
         try:
             with transaction.atomic():
-                # 先把是不是多帶算好
-                rush_only = True   # 全部都是多帶（purchase_priority_id != 1）
-                normal_exist = False
-
                 for shop, items in shop_groups.items():
-                    if shop.purchase_priority_id == 1:
-                        rush_only = False
-                        normal_exist = True
-
                     if shop.purchase_priority_id != 1:
-                        # 多帶商店 → 建立 intent
+                        # 多帶商店
                         shop = maybe_extend_rush(shop)
                         intent, _ = PurchaseIntent.objects.get_or_create(user=request.user, shop=shop)
+
                         for item in items:
                             product = item['product']
                             qty = item['quantity']
-                            intent_product, created = IntentProduct.objects.get_or_create(intent=intent, product=product,defaults={'quantity': 0})
+                            intent_product, created = IntentProduct.objects.get_or_create(intent=intent, product=product)
 
-                            current_total = IntentProduct.objects.filter(product=product).exclude(id=intent_product.id)\
-                                                                .aggregate(total=Sum('quantity'))['total'] or 0
+                            current_total = IntentProduct.objects.filter(product=product).exclude(id=intent_product.id).aggregate(
+                                total=Sum('quantity')
+                            )['total'] or 0
                             available_qty = max(product.stock - current_total, 0)
 
                             if created:
                                 intent_product.quantity = min(qty, available_qty)
                             else:
                                 intent_product.quantity = min(intent_product.quantity + qty, available_qty)
+
                             intent_product.save()
 
                             if qty > available_qty:
                                 messages.warning(request, f'{product.name} 庫存不足，已調整為 {available_qty} 件')
 
-                        continue  # 多帶不建 order，換下一個商店
+                        messages.success(request, f'{shop.name} 多帶已加入，請等待分配結果')
+                        continue
 
-                    # 一般商店 → 建立訂單
+                    # 建立一般訂單
                     total = sum(item['product'].price * item['quantity'] for item in items)
+
                     order = Order.objects.create(
                         user=request.user,
                         shop=shop,
                         total=total,
                         order_state_id=1,
-                        pay_state_id=10,  # 待選付款方式/地址
+                        pay_state_id=10,
                         second_supplement=0,
                         pay=None
                     )
+
                     for item in items:
                         ProductOrder.objects.create(order=order, product=item['product'], quantity=item['quantity'])
+
                     created_order_ids.append(order.id)
                     messages.success(request, f'{shop.name} 訂單已建立，請選擇付款與地址')
 
-            # 先刪除這次勾選的購物車項目（多帶與一般都要刪）
-            if cart_items:
-                cart_items.delete()
+                if cart_items:
+                    cart_items.delete()
 
-            # 全部都是多帶 → 直接到完成頁（MoreComp）
-            if rush_only and not normal_exist:
-                return render(request, 'checkout/MoreComp.html')
+                if created_order_ids:
+                    request.session['pending_order_ids'] = created_order_ids
+                    return redirect('checkout_address_payment')
 
-            # 有一般商店 → 進入地址/付款（Step2）
-            if created_order_ids:
-                request.session['pending_order_ids'] = created_order_ids
-                return redirect('checkout_address_payment')
-
-            # 萬一什麼都沒建立
-            messages.error(request, '無法建立任何訂單')
-            return redirect('cart')
+                return redirect('order_list')
 
         except Exception as e:
-            import traceback
-            traceback.print_exc()
             messages.error(request, f'建立訂單失敗：{e}')
             return redirect('cart')
 

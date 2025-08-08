@@ -6,11 +6,6 @@ HOT_WEIGHTS = {
     'recent_replies': 5,   # 每次被回覆 +5
 }
 
-HOT_PROPORTIONS = {
-    'recent_views': 0.4,
-    'recent_replies': 0.6,
-}
-
 # -------------------------
 # 個性化 Want 推薦權重
 # -------------------------

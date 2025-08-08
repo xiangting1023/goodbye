@@ -33,12 +33,12 @@ def view_profile(request, user):
             block_reason = "對方已封鎖您，無法查看主頁"
         else:
             block_reason = None
-    # if request.user.is_authenticated:
-    #     user_shops = personalized_shop_recommendation(request=request, owner=profile_user, limit=10)
-    #     user_wants = personalized_want_recommendation(request=request, owner=profile_user, limit=10)
-    # else:
-    user_shops = get_hot_shops(request=request, owner=profile_user, limit=10)
-    user_wants = get_hot_wants(request=request, owner=profile_user, limit=10)
+    if request.user.is_authenticated:
+        user_shops = get_hot_shops(request=request, owner=profile_user, limit=10)
+        user_wants = get_hot_wants(request=request, owner=profile_user, limit=10)
+    else:
+        user_shops = get_hot_shops(request=request, owner=profile_user, limit=10)
+        user_wants = get_hot_wants(request=request, owner=profile_user, limit=10)
 
     # 幫每個 shop 補 cover_img、價格等欄位
     for shop in user_shops:

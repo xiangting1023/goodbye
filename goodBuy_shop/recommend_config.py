@@ -2,15 +2,9 @@
 # 熱門商店推薦權重
 # -------------------------
 HOT_WEIGHTS = {
-    'recent_sales': 2,      # 每筆成交加 2 分
+    'recent_sales': 5,      # 每筆成交加 2 分
     'recent_views': 1,      # 每次瀏覽加 1 分
     'new_shop_bonus': 3,    # 新店 3 天內額外加分
-}
-
-HOT_PROPORTIONS = {
-    'recent_sales': 0.50,   # 權重比例
-    'recent_views': 0.45,
-    'new_shop_bonus': 0.05,
 }
 
 # -------------------------
