@@ -1,0 +1,41 @@
+{% if shipping_orders %}
+  <div class="shipping-list mb-4">
+    <h5>待出貨訂單</h5>
+    {% for item in shipping_orders %}
+      <div class="shipping-item p-3 mb-3 border rounded">
+        <div>訂單編號：{{ item.order.id }}</div>
+        <div>商品名稱：{{ item.product.name }}</div>
+        <div>數量：{{ item.quantity }}</div>
+        <div>買家：{{ item.order.user.username }}</div>
+        <div>出貨狀態：{{ item.order.order_state.name }}</div>
+        
+        <!-- 出貨完成按鈕 -->
+        <form method="post" action="{% url 'confirm_shipping' item.id %}" style="display:inline-block;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-primary btn-sm">出貨</button>
+        </form>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <p>目前沒有待出貨的訂單。</p>
+{% endif %}
+
+<hr>
+
+{% if shipped_orders %}
+  <div class="shipped-list">
+    <h5>已出貨訂單</h5>
+    {% for item in shipped_orders %}
+      <div class="shipped-item p-3 mb-3 border rounded bg-light">
+        <div>訂單編號：{{ item.order.id }}</div>
+        <div>商品名稱：{{ item.product.name }}</div>
+        <div>數量：{{ item.quantity }}</div>
+        <div>買家：{{ item.order.user.username }}</div>
+        <div>出貨時間：{{ item.order.updated_at }}</div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <p>目前沒有已出貨的訂單。</p>
+{% endif %}
