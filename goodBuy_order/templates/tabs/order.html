@@ -1,0 +1,30 @@
+{% if pending_orders %}
+  <div class="order-list">
+    {% for item in pending_orders %}
+      <div class="card mb-3 shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">訂單編號：{{ item.order.id }}</h5>
+          <p class="mb-1"><strong>商品名稱：</strong>{{ item.product.name }}</p>
+          <p class="mb-1"><strong>數量：</strong>{{ item.quantity }}</p>
+          <p class="mb-3"><strong>買家：</strong>{{ item.order.user.username }}</p>
+
+          <div class="d-flex">
+            <!-- 確認接單 -->
+            <form method="post" action="{% url 'confirm_order' item.id %}" class="me-2">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-success btn-sm">確認接單</button>
+            </form>
+
+            <!-- 拒絕接單 -->
+            <form method="post" action="{% url 'reject_order' item.id %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-danger btn-sm">拒絕接單</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="alert alert-info">目前沒有待處理的接單請求。</div>
+{% endif %}

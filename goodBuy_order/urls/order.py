@@ -1,6 +1,6 @@
 from django.urls import path
 from goodBuy_order.views import *
-
+from goodBuy_order.views.seller_v import *
 urlpatterns = [
     path('list/', order_list, name='buyer_order_list'),
     path('detail/<int:order_id>/', order_detail, name='order_detail'),
@@ -8,4 +8,5 @@ urlpatterns = [
     path('rush/shops/', my_rush_shops, name='my_rush_shops'),
     path('rush/<int:shop_id>/<int:intent_id>/', my_rush_status_in_intent, name='my_rush_status_in_intent'),
     path('priority/<int:shop_id>/', purchase_priority_table, name='priority_table'),
+    path('seller/', seller, name='seller'),
 ]
