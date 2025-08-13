@@ -168,7 +168,8 @@ def editProfile(request):
         profile.save()
         next_url = request.GET.get('next') or request.POST.get('next') or reverse('editprofile')
         return redirect(next_url)
-
+    accounts = PaymentAccount.active.filter(user=user)
     return render(request, 'common/edit_profile.html',{ 
         'user_address': user_address,
-        'city_choices': city_choices,})
+        'city_choices': city_choices,
+        'accounts': accounts,})

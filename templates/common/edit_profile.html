@@ -98,7 +98,42 @@
                 </div>
             </div>
 
-            <!-- 按鈕區 -->
+
+
+          <div class="section" style="margin-top: 2rem;">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <div class="section-header mb-0">我的銀行／付款帳戶</div>
+              
+              <a href="/user/payment_accounts/" class="btn btn-primary">＋ 新增／管理帳戶</a>
+            </div>
+
+            <div class="section-body">
+
+              {% with all_accounts=request.user.paymentaccount_set.all %}
+                {% if all_accounts %}
+                  <ul class="list-group">
+                    {% for acc in all_accounts %}
+                      {% if not acc.is_delete %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                          <div>
+                            {% if acc.payment %}<div>付款方式：{{ acc.payment.name }}</div>{% endif %}
+                            {% if acc.account %}<div>帳號：{{ acc.account }}</div>{% endif %}
+                          </div>
+                          {% if acc.created_at %}
+                            <small class="text-muted">建立於：{{ acc.created_at|date:"Y/m/d H:i" }}</small>
+                          {% endif %}
+                        </li>
+                      {% endif %}
+                    {% endfor %}
+                  </ul>
+                {% else %}
+                  <p class="text-muted mb-0">尚未新增任何帳戶</p>
+                {% endif %}
+              {% endwith %}
+            </div>
+          </div>
+
+                <!-- 按鈕區 -->
             <div class="button-row">
                 <a href="{% url 'home' %}" class="btn-cancel">取消</a>
                 <input type="hidden" name="action" value="save_profile">
@@ -107,44 +142,6 @@
 
         </div>
     </form>
-
-    <!-- 已儲存的銀行帳戶 -->
-    <div class="section" style="margin-top: 2rem;">
-        <div class="section-header">我的銀行帳戶</div>
-        <div class="section-body">
-            {% if accounts %}
-                {% for acc in accounts %}
-                    <form method="post" class="mb-3 border rounded p-3 bg-white">
-                        {% csrf_token %}
-                        <input type="hidden" name="account_id" value="{{ acc.id }}">
-                        <div class="row g-3 align-items-center">
-                            <div class="col-md-3">
-                                <label class="form-label">銀行代碼</label>
-                                <input type="text" class="form-control" name="bank_code" value="{{ acc.bank_code }}" placeholder="例如：012">
-                            </div>
-                            <div class="col-md-5">
-                                <label class="form-label">帳號</label>
-                                <input type="text" class="form-control" name="account_number" value="{{ acc.account|default:acc.account_number }}" placeholder="銀行帳號">
-                            </div>
-                            <div class="col-md-4 d-flex align-items-end justify-content-end gap-2">
-                                <input type="hidden" name="action" value="edit_bank">
-                                <button type="submit" class="btn btn-success">儲存修改</button>
-                                </form>
-                                <form method="post" style="display:inline;">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="account_id" value="{{ acc.id }}">
-                                    <input type="hidden" name="action" value="remove_bank">
-                                    <button type="submit" class="btn btn-danger">刪除</button>
-                                </form>
-                            </div>
-                        </div>
-                    </form>
-                {% endfor %}
-            {% else %}
-                <p class="text-muted">尚未新增任何銀行帳戶</p>
-            {% endif %}
-        </div>
-    </div>
 
 </div>
 </body>
