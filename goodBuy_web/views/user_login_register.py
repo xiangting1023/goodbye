@@ -4,6 +4,8 @@ from django.contrib.auth import  authenticate,login,logout
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
+from django.contrib.auth import update_session_auth_hash
+
 #登入
 def logins(request):
     if request.user.is_active:
@@ -125,7 +127,8 @@ def editProfile(request):
                 messages.error(request, '新密碼與確認密碼不一致')
                 return redirect('editprofile')
             user.set_password(new_password)
-            login(request, request.user)  
+            user.save()
+            update_session_auth_hash(request, user)
 
         # 更新暱稱
         nickname = request.POST.get('nickname')
@@ -166,8 +169,10 @@ def editProfile(request):
             address.save()
             
         profile.save()
-        next_url = request.GET.get('next') or request.POST.get('next') or reverse('editprofile')
+        messages.success(request, '已更新個人資料')
+        next_url = request.GET.get('next') or request.POST.get('next') or reverse('home')
         return redirect(next_url)
+    
     accounts = PaymentAccount.active.filter(user=user)
     return render(request, 'common/edit_profile.html',{ 
         'user_address': user_address,
