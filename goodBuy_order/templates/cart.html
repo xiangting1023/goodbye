@@ -26,7 +26,7 @@
             <img src="{{ group.shop.owner.profile.avatar.url }}" class="rounded-circle me-2" width="40" height="40">
             <strong>
               <a href="{% url 'view_profile' group.shop.owner.id %}" class="fw-bold text-dark text-decoration-underline">
-              {{ group.shop.owner.username }}
+              {{ group.shop.owner.profile.nickname }}
               </a>
             </strong>
             <span class="ms-2">-- 
