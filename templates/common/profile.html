@@ -59,33 +59,37 @@
     <link rel="stylesheet" href="{% static 'css/profile.css' %}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
+
 <body>
     <div class="header">{% include 'base.html' %}</div>
+        <div class="profile-header">
+  {% if profile_user.profile.avatar %}
+    <img class="profile-avatar" src="{{ profile_user.profile.avatar.url }}" alt="頭像">
+  {% else %}
+    <img class="profile-avatar" src="{% static 'img/Defuser.png' %}" alt="預設頭像">
+  {% endif %}
+
+  <div class="profile-basic">
+    <h2>{{ profile_user.profile.nickname|default:profile_user.username }}</h2>
+
+    <div class="profile-stats">
+      <span><i class="fa-regular fa-calendar-plus"></i> 加入時間：<b class="value">{{ profile_user.date_joined|date:"Y/m/d" }}</b></span>
+      <span><i class="fa-regular fa-thumbs-up"></i> 信譽度：
+        <b class="value">{% if average_rank %}{{ average_rank }}{% else %}無評價{% endif %}</b>
+      </span>
+      <span><i class="fa-regular fa-user"></i> 粉絲數：<b class="value">{{ fans_count|default:0 }}</b></span>
+      <span><i class="fa-solid fa-store"></i> 賣場：<b class="value">{{ shop_count|default:0 }}</b></span>
+      <span><i class="fa-solid fa-cart-shopping"></i> 買過：<b class="value">{{ buy_count|default:0 }}</b></span>
+    </div>
+  </div>
+</div>
 <div class="profile-container">
     
-    <div class="profile-header">
-        {% if profile_user.profile.avatar %}
-            <img class="profile-avatar" src="{{ profile_user.profile.avatar.url }}" alt="頭像">
-        {% else %}
-            <img class="profile-avatar" src="{% static 'img/Defuser.png' %}" alt="預設頭像">
-        {% endif %}
-        <div class="profile-basic">
-            <h2>{{ request.user.profile.nickname }}</h2>
-            <div class="profile-stats">
-                <span>加入時間：{{ profile_user.date_joined|date:"Y/m/d" }}</span>
-                <span>信譽度：<span class="value text-primary">{{ average_rank }}</span></span>
-                <span>粉絲數：<span class="value text-primary">{{ fans_count }}</span></span>
-                <span>賣場數：<span class="value text-primary">{{ shop_count }}</span></span>
-                <span>買過：<span class="value text-primary">{{ buy_count }}</span></span>
-            </div>
-        </div>
-    </div>
-
     {% if block_reason %}
         <div class="alert alert-danger" role="alert">{{ block_reason }}</div>
     {% else %}
     <!-- 售物卡片區 -->
-    <div class="profile-section-title">{{ request.user.profile.nickname }}的賣場：</div>
+    <div class="profile-section-title">{{ profile_user.profile.nickname|default:profile_user.username }}的賣場：</div>
     <div class="profile-card-list row">
         {% for shop in user_shops|slice:":6" %}
         <div class="col-lg-2 col-md-3 col-6 mb-4">
@@ -115,7 +119,7 @@
     </div>
 
     <!-- 收物卡片區 -->
-    <div class="profile-section-title">{{ request.user.profile.nickname }}的收物文：</div>
+   <div class="profile-section-title">{{ profile_user.profile.nickname|default:profile_user.username }}的收物文：</div>
     <div class="profile-card-list row">
         {% for want in user_wants|slice:":6" %}
         <div class="col-lg-2 col-md-3 col-6 mb-4">
