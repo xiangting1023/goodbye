@@ -16,11 +16,11 @@
 
 {% for blocked_user in blacklist %}
   <li>
-    {% if profile_user.profile.avatar %}
-      <img class="profile-avatar" src="{{ profile_user.profile.avatar.url }}" alt="頭像">
-    {% else %}
-      <img class="avatar" src="/static/img/Defuser.png" alt="預設頭像" />
-    {% endif %}
+    {% if blocked_user.black_user.profile.avatar %}
+  <img class="profile-avatar" src="{{ blocked_user.black_user.profile.avatar.url }}" alt="頭像">
+{% else %}
+  <img class="avatar" src="/static/img/Defuser.png" alt="預設頭像" />
+{% endif %}
     <span class="name">{{ blocked_user.black_user.username }}</span>
     <span class="join-date">加入日期：{{ blocked_user.date|date:"Y/m/d" }}</span>
 <form method="POST" action="{% url 'blacklist_remove' %}">
