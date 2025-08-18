@@ -32,9 +32,9 @@ class Shop(models.Model):
     
     # 商店是否截止
     @property
-    def is_end(self):
+    def is_active(self):
         now = timezone.now()
-        return (now > self.end_time) or (now < self.start_time) or (self.permission.id != 1)
+        return (self.permission.id == 1) and (self.start_time <= now <= self.end_time)
     
     # 商店總銷量，多帶則是已有多少人參與
     @property

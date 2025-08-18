@@ -196,7 +196,7 @@ def checkout_step1(request):
                 return redirect('cart')
             if item.product.shop.permission_id != 1:
                 messages.error(request, f'{item.product.shop.name} 商店已下架')
-            if item.product.shop.is_end:
+            if item.product.shop.is_active:
                 messages.error(request, f'{item.product.shop.name} 商店尚未開啟或已結束')
                 return redirect('cart')
             
