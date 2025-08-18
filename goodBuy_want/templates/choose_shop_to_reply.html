@@ -1,0 +1,17 @@
+
+{% load static %}
+
+<h3>以你的商店回覆：{{ want.title }}</h3>
+
+<form method="post" class="mt-3">
+  {% csrf_token %}
+  <div class="mb-3">
+    <label class="form-label">{{ form.shop.label }}</label>
+    {{ form.shop }}
+    {% if form.shop.errors %}
+      <div class="text-danger small mt-1">{{ form.shop.errors.0 }}</div>
+    {% endif %}
+  </div>
+  <button class="btn btn-primary">送出回覆</button>
+  <a class="btn btn-outline-secondary" href="{% url 'want_detail' want.id %}">返回</a>
+</form>
