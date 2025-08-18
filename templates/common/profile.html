@@ -79,7 +79,7 @@
       </span>
       <span><i class="fa-regular fa-user"></i> 粉絲數：<b class="value">{{ fans_count|default:0 }}</b></span>
       <span><i class="fa-solid fa-store"></i> 賣場：<b class="value">{{ shop_count|default:0 }}</b></span>
-      <span><i class="fa-solid fa-cart-shopping"></i> 買過：<b class="value">{{ buy_count|default:0 }}</b></span>
+      {% comment %} <span><i class="fa-solid fa-cart-shopping"></i> 買過：<b class="value">{{ buy_count|default:0 }}</b></span> {% endcomment %}
     </div>
   </div>
 </div>

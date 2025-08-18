@@ -1,23 +1,66 @@
+{% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+  <meta charset="UTF-8">
+  <title># {{ kw }} 的搜尋結果</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/shop_search.css' %}">  <!-- 換成你實際的卡片CSS -->
 </head>
-<body>
-    <h2>搜尋標籤關鍵字：「{{ kw }}」的結果</h2>
+<body class="bg-light">
+  {% comment %} <header>
+    {% include "common/header.html" %}
+  </header> {% endcomment %}
+
+  <main class="container py-4">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <h3 class="mb-0"># {{ kw }}</h3>
+    </div>
 
     {% if tags %}
-        <ul>
-            {% for tag in tags %}
-            <li>
-                <a href="{% url 'tagById_one' tag.id %}">{{ tag.name }}</a>
-            </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p>沒有找到符合的標籤。</p>
+      <div class="mb-3">
+        <div class="d-flex flex-wrap gap-2">
+          {% for t in tags %}
+            <a href="{% url 'tagById_one' t.id %}" class="badge bg-light text-dark text-decoration-none">
+              #{{ t.name }}
+            </a>
+          {% endfor %}
+        </div>
+      </div>
     {% endif %}
+
+    {% if shops %}
+      <div class="row g-3">
+        {% for shop in shops %}
+          <div class="col-6 col-md-4 col-lg-3">
+            <a href="{% url 'shop_detail' shop.id %}" class="text-decoration-none">
+              <div class="card h-100 shadow-sm">
+                {% with cover=shop.shopimg_set.first %}
+                  {% if cover %}
+                    <img src="{{ cover.img.url }}" class="card-img-top" alt="{{ shop.name }}">
+                  {% else %}
+                    <img src="{% static 'img/placeholder.png' %}" class="card-img-top" alt="{{ shop.name }}">
+                  {% endif %}
+                {% endwith %}
+                <div class="card-body">
+                  <h6 class="card-title text-dark mb-1 text-truncate">{{ shop.name }}</h6>
+                  <div class="small text-muted">更新：{{ shop.update|date:"Y/m/d" }}</div>
+                  <div class="mt-2 d-flex flex-wrap gap-1">
+                    {% for tg in shop.tags.all|slice:":3" %}
+                      <span class="badge bg-light text-dark">#{{ tg.name }}</span>
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+            </a>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="text-muted">沒有找到符合「{{ kw }}」的商店。</div>
+    {% endif %}
+  </main>
+
+  <script src="{% static 'js/list.js' %}"></script>
 </body>
 </html>
