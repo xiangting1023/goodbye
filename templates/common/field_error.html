@@ -1,0 +1,8 @@
+{% load static %}
+
+<link rel="stylesheet" href="{% static 'css/error/error_list.css' %}">
+{% if field and field.errors %}
+  <div class="errorlist">{{ field.errors.0 }}</div>
+{% elif error %}
+  <div class="errorlist">{{ error }}</div>
+{% endif %}

@@ -1,0 +1,12 @@
+{% if messages %}
+  <div class="alert alert-danger">
+    <ul class="mb-0">
+      {% for message in messages %}
+        <!-- 過濾指定錯誤訊息 -->
+        {% if not tag or tag in message.tags %}
+          <li>{{ message }}</li>
+        {% endif %}
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}
