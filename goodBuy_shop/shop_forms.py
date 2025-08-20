@@ -72,6 +72,32 @@ class ShopForm(forms.ModelForm):
                 shop=self.instance
             ).values_list('payment_account_id', flat=True)
 
+    def clean(self):
+        cleaned = super().clean()
+
+        start_time = cleaned.get('start_time')
+        end_time   = cleaned.get('end_time')
+        priority   = cleaned.get('purchase_priority')
+
+        # 兼容：priority 可能是整數欄位，也可能是外鍵物件
+        def _priority_value(p):
+            if p is None: 
+                return None
+            return getattr(p, 'id', p)  # 外鍵用 p.id，整數用 p
+
+        pval = _priority_value(priority)
+
+        # 規則：金額優先(2)或數量優先(3) ⇒ 必須有結單時間
+        if pval in (2, 3):
+            if not end_time:
+                self.add_error('end_time', '使用「金額/數量優先」分配時，必須設定結單時間。')
+                print('金額/數量優先分配時，必須設定結單時間。')
+
+        # 建議的合理性檢查：同時填了才檢查先後
+        if start_time and end_time:
+            if end_time <= start_time:
+                self.add_error('end_time', '結單時間必須晚於開始時間。')
+                print('結單時間必須晚於開始時間。')
 
     def save(self, commit=True):
         shop = super().save(commit=False)
