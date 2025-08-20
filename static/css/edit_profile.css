@@ -161,3 +161,14 @@ body{
   border-radius: 6px;
   width: 100%;
 }
+
+/* 不可更改的欄位css */
+.is-readonly {
+  background-color: #f1f3f5;  /* 淺灰 */
+  color: #6c757d;             /* 次要文字色 */
+  cursor: not-allowed;        /* 滑鼠指標顯示禁用感 */
+}
+.is-readonly:focus {
+  box-shadow: none;
+  outline: 0;
+}
