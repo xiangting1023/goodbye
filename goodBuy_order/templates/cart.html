@@ -23,7 +23,7 @@
           <!-- 團主資訊列 -->
           <div class="d-flex align-items-center mb-3">
             <input type="checkbox" class="form-check-input me-2 group-checkbox">
-            <img src="{{ group.shop.owner.profile.avatar.url }}" class="rounded-circle me-2" width="40" height="40">
+            <img src="{{ group.shop.owner.profile.avatar_url }}" class="rounded-circle me-2" width="40" height="40">
             <strong>
               <a href="{% url 'view_profile' group.shop.owner.id %}" class="fw-bold text-dark text-decoration-underline">
               {{ group.shop.owner.username }}

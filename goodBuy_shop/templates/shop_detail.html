@@ -15,7 +15,7 @@
         <div class="col-md-8">
             <div class="card p-3 mb-3">
                 <div class="d-flex align-items-center">
-                    <img src="{{ shop.owner.profile.avatar.url }}" class="avatar me-2">
+                    <img src="{{ shop.owner.profile.avatar_url }}" class="avatar me-2">
                     <div>
                          <strong>{{ shop.owner.username }}</strong><br>
                          <a href="{% url 'view_profile' shop.owner.id %}" class="fw-bold text-decoration-none">查看賣家</a>
