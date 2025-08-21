@@ -15,21 +15,9 @@
         <div class="row g-0">
 
             <!-- 上方資訊 -->
-                <div class="card mb-4 no-padding">
-                    <div class="card-header bg-light">
-                        <h5 class="mb-0 d-none">發布者資訊</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="d-flex align-items-center">
-                            <img src="{{ want.user.profile.avatar_url }}" class="avatar">
-                            <div>
-                                <strong>{{ want.user.username }}</strong>
-                                <p class="text-muted mb-0 small">註冊時間：{{ want.user.date_joined|date:"Y/m/d" }}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
+                <!-- 收物主個人資訊 -->
+                {% include 'info_w.html' %}
+
                 {% if backs %}
                 <div class="card">
                     <div class="card-header bg-light">

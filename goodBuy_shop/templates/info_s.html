@@ -1,0 +1,41 @@
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/info_s.css' %}">
+
+<div class="card p-3 mb-3">
+  <div class="row align-items-center text-center">
+
+    <!-- 區塊 1：頭像 + 名字 -->
+    <div class="col-3 d-flex align-items-center">
+      <a href="{% url 'view_profile' shop.owner.id %}" class="seller-link d-flex align-items-center">
+        <img src="{{ shop.owner.profile.avatar_url }}" class="avatar me-2" alt="賣家頭像">
+        <strong>{{ shop.owner.username }}</strong>
+      </a>
+    </div>
+
+    <!-- 區塊 2：註冊時間 -->
+    <div class="col-3">
+      <p class="text-muted mb-0 small">
+        加入時間：{{ shop.owner.date_joined|date:"Y/m/d" }}
+      </p>
+    </div>
+
+    <!-- 區塊 3：信譽度 -->
+    <div class="col-3">
+      <span>
+        <i class="fa-regular fa-thumbs-up"></i>
+        信譽度：<b class="value">
+          {% if average_rank %}{{ average_rank }}{% else %}無評價{% endif %}
+        </b>
+      </span>
+    </div>
+
+    <!-- 區塊 4：粉絲數 -->
+    <div class="col-3">
+      <span>
+        <i class="fa-regular fa-user"></i>
+        粉絲數：<b class="value">{{ fans_count|default:0 }}</b>
+      </span>
+    </div>
+
+  </div>
+</div>

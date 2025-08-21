@@ -1,0 +1,11 @@
+.seller-link {
+  text-decoration: none;   /* 去掉底線 */
+  color: inherit;          /* 使用父層顏色 */
+  display: flex;           /* 頭像 + 名字在同一列 */
+  align-items: center;     /* 垂直置中 */
+}
+
+.seller-link:hover {
+  background-color: #f8f9fa; /* 滑過時背景微灰，更明顯可點擊 */
+  border-radius: 8px;
+}

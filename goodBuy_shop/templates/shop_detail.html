@@ -13,15 +13,9 @@
 <div class="container mt-4">
     <div class="row">
         <div class="col-md-8">
-            <div class="card p-3 mb-3">
-                <div class="d-flex align-items-center">
-                    <img src="{{ shop.owner.profile.avatar_url }}" class="avatar me-2">
-                    <div>
-                         <strong>{{ shop.owner.username }}</strong><br>
-                         <a href="{% url 'view_profile' shop.owner.id %}" class="fw-bold text-decoration-none">查看賣家</a>
-                    </div>
-                </div>
-            </div>
+
+            <!-- 賣家個人資料 -->
+            {% include 'info_s.html' %}
 
             <!-- 主卡片 -->
             <div class="card p-3 d-flex flex-column">
@@ -150,7 +144,14 @@
                         </p>
                         <p><strong>商品狀態：</strong>{{ shop.shop_state.name }}</p>
                         <p><strong>開始時間：</strong>{{ shop.start_time|date:"Y/m/d" }}</p>
-                        <p><strong>結束時間：</strong>{{ shop.end_time|date:"Y/m/d" }}</p>
+                        
+                        <!-- 截止時間 -->
+                        {% if shop.end_time.year >= 2099 %}
+                            <p><strong>結束時間：</strong>無截止</p>
+                        {% else %}
+                            <p><strong>結束時間：</strong>{{ shop.end_time|date:"Y/m/d" }}</p>
+                        {% endif %}
+
                         <p><strong>支援的付款方式：</strong>
                             {% if shop.shoppayment_set.all %}
                                 <ul>
