@@ -1,26 +1,53 @@
+{% load static %}
 {% if pending_orders %}
   <div class="order-list">
     {% for item in pending_orders %}
       <div class="card mb-3 shadow-sm">
         <div class="card-body">
-          <h5 class="card-title">訂單編號：{{ item.order.id }}</h5>
-          <p class="mb-1"><strong>商品名稱：</strong>{{ item.product.name }}</p>
-          <p class="mb-1"><strong>數量：</strong>{{ item.quantity }}</p>
-          <p class="mb-3"><strong>買家：</strong>{{ item.order.user.username }}</p>
+          <h5 class="card-title">訂單編號：{{ item.id }}</h5>
+          <p class="mb-1"><strong>買家：</strong>{{ item.user.username }}</p>
+          <p class="mb-1"><strong>商店：</strong>{{ item.shop.name }}</p>
+          <p class="mb-1"><strong>總金額：</strong>{{ item.total }} 元</p>
 
-          <div class="d-flex">
-            <!-- 確認接單 -->
-            <form method="post"  class="me-2">
-              {% csrf_token %}
-              <button type="submit" class="btn btn-success btn-sm">確認接單</button>
-            </form>
-
-            <!-- 拒絕接單 -->
-            <form method="post">
-              {% csrf_token %}
-              <button type="submit" class="btn btn-danger btn-sm">拒絕接單</button>
-            </form>
+          <!-- 商品清單 -->
+          <div class="mt-3">
+            <strong>商品明細：</strong>
+            <div class="row">
+              {% for product_order in item.productorder_set.all %}
+                <div class="col-md-4 mb-2">
+                  <div class="card h-100">
+                    {% if product_order.product.img %}
+                      <img src="{{ product_order.product.img.url }}" class="card-img-top" alt="{{ product_order.product.name }}">
+                    {% else %}
+                      <img src="{% static 'images/no_image.png' %}" class="card-img-top" alt="No image">
+                    {% endif %}
+                    <div class="card-body p-2">
+                      <p class="card-text mb-1"><strong>{{ product_order.product.name }}</strong></p>
+                      <p class="card-text mb-1">數量：{{ product_order.quantity }}</p>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
           </div>
+
+          <!-- 接單操作 -->
+          <div class="d-flex mt-3">
+          <!-- 確認接單 -->
+          <form method="post" action="{% url 'seller_action' item.id %}" class="me-2">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="confirm">
+            <button type="submit" class="btn btn-success btn-sm">確認接單</button>
+          </form>
+
+          <!-- 拒絕接單 -->
+          <form method="post" action="{% url 'seller_action' item.id %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="reject">
+            <button type="submit" class="btn btn-danger btn-sm">拒絕接單</button>
+          </form>
+        </div>
+
         </div>
       </div>
     {% endfor %}

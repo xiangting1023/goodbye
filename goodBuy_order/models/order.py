@@ -33,7 +33,10 @@ class Order(models.Model):
     order_state = models.ForeignKey(OrderState, on_delete=models.CASCADE)
 
     def __str__(self):
-        return f'{self.user} 的訂單（{self.shop_name}） - {self.total} 元'
+        user_display = self.user.username if self.user else "匿名用戶"
+        shop_display = self.shop.name if self.shop else "未知商店"
+        return f'{user_display} 的訂單（{shop_display}） - {self.total} 元'
+
 
     # 已支付總金額
     @property

@@ -2,6 +2,7 @@ from django.urls import path
 from goodBuy_order.views import *
 from goodBuy_order.views.seller_view import *
 from goodBuy_order.views.buyer_view import *
+
 urlpatterns = [
     path('list/', order_list, name='buyer_order_list'),
     path('detail/<int:order_id>/', order_detail, name='order_detail'),
@@ -11,4 +12,5 @@ urlpatterns = [
     path('priority/<int:shop_id>/', purchase_priority_table, name='priority_table'),
     path('seller/', seller, name='seller'),
     path('buyer/', buyer, name='buyer'),
+    path('order/action/seller_action/<int:order_id>/', seller_action, name='seller_action'),  # 接單/付款確認操作
 ]
