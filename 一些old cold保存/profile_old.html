@@ -1,0 +1,51 @@
+ <!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ profile_user.username }} 的個人檔案</title>
+    <link rel="stylesheet" href="/static/css/profile.css">
+</head>
+<body>
+    <div class="profile-container">
+        <h1>{{ profile_user.username }} 的個人檔案</h1>
+        <div class="profile-content">
+            <!-- 左邊：頭像 -->
+            <div class="profile-picture">
+                {% if profile_user.img %}
+                    <img src="{{ profile_user.img.url }}" alt="頭像">
+                {% else %}
+                    <img src="/static/img/Defuser.png" alt="預設頭像">
+                {% endif %}
+            </div>
+            <!-- 右邊：資訊 -->
+            <div class="user-info">
+                <div class="info-group">
+                    <strong>使用者名稱：</strong> {{ profile_user.username }}
+                </div>
+                {% if profile_user.nickname %}
+                <div class="info-group">
+                    <strong>暱稱：</strong> {{ profile_user.nickname }}
+                </div>
+                {% endif %}
+                <div class="info-group">
+                    <strong>電子郵件：</strong> {{ profile_user.email }}
+                </div>
+                {% if profile_user.introduce %}
+                <div class="info-group">
+                    <strong>自我介紹：</strong><br>
+                    <span>{{ profile_user.introduce|linebreaksbr }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        <a href="{% url 'home' %}" class="Options">返回主頁</a>
+    </div>
+    {% if request.user.is_authenticated and request.user.id != profile_user.id %}
+<form method="POST" action="{% url 'blacklist_add' %}">
+    {% csrf_token %}
+    <input type="hidden" name="black_user_id" value="{{ profile_user.id }}">
+    <button type="submit">加入黑名單</button>
+</form>
+{% endif %}
+</body>
+</html> 
