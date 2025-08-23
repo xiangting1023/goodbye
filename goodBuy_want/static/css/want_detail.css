@@ -96,15 +96,6 @@ h4, h5 {
     align-items: flex-start;
 }
 
-/* 標籤樣式 */
-.badge {
-    background-color: #E9E9E9;
-    color: #333;
-    border-radius: 3px;
-    padding: 0.4em 0.75em;
-    font-size: 0.85rem;
-}
-
 .action-buttons {
     display: flex;
     gap: 8px;

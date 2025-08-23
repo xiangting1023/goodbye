@@ -62,7 +62,3 @@ def choose_shop_and_reply(request, want):
         'want': want,
         'form': form,
     })
-
-# -------------------------
-# 查看被回復的收物帖
-# -------------------------

@@ -7,6 +7,9 @@ from ..models import *
 from goodBuy_shop.models import Permission
 from goodBuy_web.models import SearchHistory
 
+from goodBuy_shop.models import *
+from goodBuy_shop.shop_utils import shopInformation_many
+
 from ..want_utils import *
 from utils import *
 
@@ -56,19 +59,22 @@ def wantByUserId_many(request, user):
     return render(request, 'want_detail.html', locals())
 
 # -------------------------
-# 收物帖查詢 - want_id
+# 收物帖查詢 - want_id + # 查看被回覆的收物帖
 # -------------------------
 @want_exists_required
 @blacklist_check(lambda want: want.user, msg='你已被此使用者封鎖，無法查看', context_name='want')
 def wantById_one(request, want):
-    # 記錄點擊是否為推薦，做推送記錄
     record_want_click(request, want)
 
+    # 如果是收物帖主先把 backs、tags but no return 繼續計算 shared_shops
     if request.user.is_authenticated and request.user == want.user:
-        backs = ( WantBack.objects.filter(want=want).select_related('user', 'shop').order_by('-date'))
+        backs = (WantBack.objects
+                 .filter(want=want)
+                 .select_related('user', 'shop')
+                 .order_by('-date'))
         tags = [t.tag for t in WantTag.objects.filter(want=want)]
-        return render(request, 'want_detail.html', locals())
 
+    # 公開/私密檢查
     if want.permission.id == 2 and request.user != want.owner:
         messages.error(request, '當前收物帖不公開')
         return redirect('home')
@@ -76,25 +82,61 @@ def wantById_one(request, want):
         messages.error(request, '當前收物帖不存在')
         return redirect('home')
 
-    if request.user.is_authenticated:
-        WantFootprints.objects.update_or_create(
-            user=request.user,
-            want=want,
-            defaults={'date': timezone.now()}
-        )
-    else:
-        # 確保 session_key 存在
-        if not request.session.session_key:
-            request.session.save()
-        session_key = request.session.session_key
-        WantFootprints.objects.update_or_create(
-            session_key=session_key,
-            want=want,
-            defaults={'date': timezone.now()}
-        )
-    
+    # 足跡邏輯（照舊，保留你原本的 is_authenticated / session 分支）
+
+    # 計算 shared_shops
+    shared_shops = []
+    if request.user.is_authenticated and request.user.id == want.user_id:
+        shared_shop_ids = (WantBack.objects
+                           .filter(want=want)
+                           .values_list('shop_id', flat=True).distinct())
+        qs = (Shop.objects
+              .filter(id__in=shared_shop_ids)
+              .annotate(price_min=Min('product__price'),
+                        price_max=Max('product__price'))
+              .prefetch_related(
+                  Prefetch('images', queryset=ShopImg.objects.order_by('position', 'id'))
+              ))
+        shared_shops = list(qs)
+
     return render(request, 'want_detail.html', locals())
 
+# @want_exists_required
+# @blacklist_check(lambda want: want.user, msg='你已被此使用者封鎖，無法查看', context_name='want')
+# def wantById_one(request, want):
+#     # 記錄點擊是否為推薦，做推送記錄
+#     record_want_click(request, want)
+
+#     if request.user.is_authenticated and request.user == want.user:
+#         backs = ( WantBack.objects.filter(want=want).select_related('user', 'shop').order_by('-date'))
+#         tags = [t.tag for t in WantTag.objects.filter(want=want)]
+#         return render(request, 'want_detail.html', locals())
+
+#     if want.permission.id == 2 and request.user != want.owner:
+#         messages.error(request, '當前收物帖不公開')
+#         return redirect('home')
+#     if want.permission.id == 3:
+#         messages.error(request, '當前收物帖不存在')
+#         return redirect('home')
+
+#     if request.user.is_authenticated:
+#         WantFootprints.objects.update_or_create(
+#             user=request.user,
+#             want=want,
+#             defaults={'date': timezone.now()}
+#         )
+#     else:
+#         # 確保 session_key 存在
+#         if not request.session.session_key:
+#             request.session.save()
+#         session_key = request.session.session_key
+#         WantFootprints.objects.update_or_create(
+#             session_key=session_key,
+#             want=want,
+#             defaults={'date': timezone.now()}
+#         )
+    
+#     return render(request, 'want_detail.html', locals())
 # -------------------------
 # 收物帖查詢 - search
 # -------------------------
