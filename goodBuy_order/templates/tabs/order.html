@@ -1,48 +1,48 @@
 {% load static %}
 {% if pending_orders %}
-  <div class="container">
+  <div class="order-container">
     {% for item in pending_orders %}
-      <div class="order-card">
+      <div class="order-card p-3 mb-3 border rounded shadow-sm">
         <!-- 左上角買家 -->
-        <div class="order-header">
+        <div class="order-header mb-2">
           <strong>買家：{{ item.user.username }}</strong>
         </div>
         <!-- 灰線 -->
-        <div class="order-divider"></div>
+        <div class="order-divider mb-2"></div>
 
         <!-- 商品明細 -->
-        <div class="order-content row align-items-center">
-          <!-- 商品圖片 -->
-          <div class="col-md-3">
-            {% for product_order in item.productorder_set.all %}
+        <div class="order-content">
+          {% for product_order in item.productorder_set.all %}
+          <div class="d-flex align-items-center mb-2">
+            <!-- 商品圖片 -->
+            <div class="me-3">
               {% if product_order.product.img %}
                 <img src="{{ product_order.product.img.url }}" class="product-img" alt="{{ product_order.product.name }}">
               {% else %}
                 <img src="{% static 'images/no_image.png' %}" class="product-img" alt="No image">
               {% endif %}
-            {% endfor %}
-          </div>
+            </div>
 
-          <!-- 商店名稱 -->
-          <div class="col-md-3">
-            <p>{{ item.shop.name }}</p>
-          </div>
 
-          <!-- 數量 -->
-          <div class="col-md-3">
-            {% for product_order in item.productorder_set.all %}
-              <p>數量：{{ product_order.quantity }}</p>
-            {% endfor %}
+            <!-- 中間數量 + 金額 -->
+            <div class="d-flex align-items-center flex-grow-1 justify-content-center custom-gap">
+              <p class="mb-0">{{ item.shop.name }}</p>
+              <p class="mb-0">數量：{{ product_order.quantity }}</p>
+              <p class="money mb-0">{{ product_order.product.price|default:0 }} $</p>
+            </div>
           </div>
-
-          <!-- 總金額 -->
-          <div class="col-md-3 text-end">
-            <strong>總金額：{{ item.total }} 元</strong>
-          </div>
+          {% empty %}
+            <p class="text-muted">此訂單無商品。</p>    
+          {% endfor %}
         </div>
 
-        <!-- 接單操作 -->
-        <div class="order-actions mt-3">
+        <!-- 訂單總金額 -->
+        <div class="text-end mt-2">
+          總金額：<span class="money">{{ item.total }}$</span>
+        </div>
+
+        <!-- 接單操作按鈕靠右 -->
+        <div class="order-actions mt-3 d-flex justify-content-end">
           <form method="post" action="{% url 'seller_action' item.id %}" class="me-2 d-inline">
             {% csrf_token %}
             <input type="hidden" name="action" value="confirm_order">

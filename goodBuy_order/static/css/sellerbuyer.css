@@ -4,136 +4,130 @@ body {
     margin-top: 150px;
 }
 
+
+
 .action-buttons {
-  display: flex;
-  justify-content: center;
-  gap: 20px;
-  margin-bottom: 50px;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 50px;
 }
 
 .action-btn {
-  width: 200px;
-  padding: 10px; /* 加大按鈕 */
-  border-radius: 70px; /* 橢圓形 */
-  font-weight: bold;
-  border: 2px solid #ff99aa; /* 深粉紅邊框 */
-  background-color: #fdfdfd; /* 比原本稍淺的底色 */
-  color: #ff99aa; /* 文字用深粉紅 */
-  transition: all 0.3s ease;
-  margin-right: 30px; /* 按鈕間距 */
-  cursor: pointer;
-   font-size: 15px;    
-   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+    width: 200px;
+    padding: 10px; /* 加大按鈕 */
+    border-radius: 70px; /* 橢圓形 */
+    font-weight: bold;
+    border: 2px solid #ff99aa; /* 深粉紅邊框 */
+    background-color: #fdfdfd; /* 比原本稍淺的底色 */
+    color: #ff99aa; /* 文字用深粉紅 */
+    transition: all 0.3s ease;
+    margin-right: 30px; /* 按鈕間距 */
+    cursor: pointer;
+    font-size: 15px;    
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
 }
 
-/* 選取後的按鈕樣式 */
 .action-btn.active {
-  background-color: #ff99aa; /* 按鈕底色改成深粉紅 */
-  color: white; /* 文字白色 */
-  border-color: #ff99aa;
+    background-color: #ff99aa; /* 按鈕底色改成深粉紅 */
+    color: white; /* 文字白色 */
+    border-color: #ff99aa;
 }
 
 .action-btn:hover {
-  background-color: #ff99aa;
-  color: white;
+    background-color: #ff99aa;
+    color: white;
 }
 
 /* 訂單容器 */
 .order-container {
-  margin-top: 20px;
+    margin-top: 20px;
 }
 
 /* 訂單卡片 */
 .order-card {
-  background-color: #fff;
-  border: 2px solid #ffd6e0;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 15px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
 .order-card-body {
-  padding: 15px;
+    padding: 15px;
 }
 
 .order-title {
-  margin-bottom: 10px;
+    margin-bottom: 10px;
+}
+
+.order-header {
+    font-weight: bold;
+    font-size: 16px;
+    margin-bottom: 5px;
+}
+
+.order-divider {
+    height: 2px;
+    background-color: #e0e0e0;
+    margin-bottom: 10px;
 }
 
 /* 商品列表 */
 .product-list {
-  margin-top: 15px;
+    margin-top: 15px;
 }
 
 .product-card-col {
-  margin-bottom: 10px;
+    margin-bottom: 10px;
 }
 
 .product-card {
-  border: 1px solid #eee;
-  border-radius: 5px;
-  overflow: hidden;
-  background-color: #fafafa;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+    border: 1px solid #eee;
+    border-radius: 5px;
+    overflow: hidden;
+    background-color: #fafafa;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 .product-img {
-  width: 100%;
-  height: 150px;
-  object-fit: cover;
+    width: 100%;
+    max-width: 100px;
+    height: 100px ;
+    object-fit: cover;
+    border-radius: 4px;
 }
 
 .product-info {
-  padding: 8px;
+    padding: 8px;
 }
 
 .product-name {
-  margin-bottom: 4px;
+    margin-bottom: 4px;
 }
 
 .product-quantity {
-  margin-bottom: 0;
+    margin-bottom: 0;
 }
 
 /* 接單按鈕 */
 .order-actions {
-  margin-top: 15px;
-  display: flex;
-  gap: 10px;
-}
-
-.order-card {
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  padding: 15px;
-  margin-bottom: 20px;
-  background-color: #fff;
-}
-
-.order-header {
-  font-weight: bold;
-  font-size: 16px;
-  margin-bottom: 5px;
-}
-
-.order-divider {
-  height: 2px;
-  background-color: #e0e0e0;
-  margin-bottom: 10px;
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
 }
 
 .order-content {
-  padding: 10px 0;
+    padding: 10px 0;
 }
 
-.product-img {
-  width: 100%;
-  max-width: 80px;
-  border-radius: 4px;
+.custom-gap {
+  gap:200px;
 }
 
-.order-actions {
-  margin-top: 10px;
+.money {
+    color: #ff002b;
 }
