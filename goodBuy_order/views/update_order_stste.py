@@ -13,9 +13,10 @@ from ..constants import *
 # 庫存退回
 # -------------------------
 def restore_order_stock(order):
-    for item in order.items.select_related('product'):
-        item.product.stock += item.quantity
-        item.product.save()
+    for item in order.productorder_set.select_related('product'):
+        if item.product:
+            item.product.stock += item.quantity
+            item.product.save()
 # -------------------------
 # 訂單狀態修改 - ex. 付款、出貨
 # -------------------------

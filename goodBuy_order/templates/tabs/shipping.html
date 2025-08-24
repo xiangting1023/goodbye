@@ -10,7 +10,7 @@
         <div>出貨狀態：{{ item.order.order_state.name }}</div>
         
         <!-- 出貨完成按鈕 -->
-        <form method="post" action="{% url 'confirm_shipping' item.id %}" style="display:inline-block;">
+        <form method="post" action="{% url 'seller_action' item.id %} style="display:inline-block;">
           {% csrf_token %}
           <button type="submit" class="btn btn-primary btn-sm">出貨</button>
         </form>

@@ -1,26 +1,30 @@
-function showTab(tabName) {
-    const sellerContent = document.getElementById("seller-content");
-    sellerContent.innerHTML = document.getElementById("tab-" + tabName).innerHTML;
-}
+document.addEventListener('DOMContentLoaded', () => {
+    const tabs = ['order', 'payment', 'shipping'];
+    const buttons = document.querySelectorAll('.action-btn');
 
+    function showTab(tabName) {
+        tabs.forEach(name => {
+            const el = document.getElementById('tab-' + name);
+            if (el) el.style.display = (name === tabName) ? 'block' : 'none';
+        });
+    }
 
-document.querySelectorAll('.action-btn').forEach(button => {
-  button.addEventListener('click', () => {
-    // 移除其他按鈕 active
-    document.querySelectorAll('.action-btn').forEach(btn => btn.classList.remove('active'));
-    // 自己加 active
-    button.classList.add('active');
+    buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            // 移除所有按鈕的 active
+            buttons.forEach(b => b.classList.remove('active'));
+            // 當前按鈕加 active
+            btn.classList.add('active');
 
-    // 切換內容（假設有showTab函式）
-    showTab(button.getAttribute('onclick').match(/'(\w+)'/)[1]);
-  });
+            // 顯示對應 tab
+            const tabName = btn.getAttribute('data-tab');
+            showTab(tabName);
+        });
+    });
+
+    // 預設顯示第一個 tab
+    if(buttons[0]) {
+        buttons[0].classList.add('active');
+        showTab(buttons[0].getAttribute('data-tab'));
+    }
 });
-
-// 頁面載入時，預設第一個按鈕 active
-window.onload = () => {
-  const firstBtn = document.querySelector('.action-btn');
-  if(firstBtn) {
-    firstBtn.classList.add('active');
-  }
-};
-

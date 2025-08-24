@@ -38,3 +38,102 @@ body {
   color: white;
 }
 
+/* 訂單容器 */
+.order-container {
+  margin-top: 20px;
+}
+
+/* 訂單卡片 */
+.order-card {
+  background-color: #fff;
+  border: 2px solid #ffd6e0;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.order-card-body {
+  padding: 15px;
+}
+
+.order-title {
+  margin-bottom: 10px;
+}
+
+/* 商品列表 */
+.product-list {
+  margin-top: 15px;
+}
+
+.product-card-col {
+  margin-bottom: 10px;
+}
+
+.product-card {
+  border: 1px solid #eee;
+  border-radius: 5px;
+  overflow: hidden;
+  background-color: #fafafa;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.product-img {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+}
+
+.product-info {
+  padding: 8px;
+}
+
+.product-name {
+  margin-bottom: 4px;
+}
+
+.product-quantity {
+  margin-bottom: 0;
+}
+
+/* 接單按鈕 */
+.order-actions {
+  margin-top: 15px;
+  display: flex;
+  gap: 10px;
+}
+
+.order-card {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 15px;
+  margin-bottom: 20px;
+  background-color: #fff;
+}
+
+.order-header {
+  font-weight: bold;
+  font-size: 16px;
+  margin-bottom: 5px;
+}
+
+.order-divider {
+  height: 2px;
+  background-color: #e0e0e0;
+  margin-bottom: 10px;
+}
+
+.order-content {
+  padding: 10px 0;
+}
+
+.product-img {
+  width: 100%;
+  max-width: 80px;
+  border-radius: 4px;
+}
+
+.order-actions {
+  margin-top: 10px;
+}
