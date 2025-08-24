@@ -1,15 +1,16 @@
 .card-img-top {
-  width: 222px;
-  height: 222px;
+  width: 222px !important; 
+  height: 222px !important;
   object-fit: cover;
-  border-radius: 8px;
+  border-radius: 8px !important;
+  margin-top: 12px !important;
 }
 
 .post-card {
-  width: 250px;
-  height: 350px;
-  border-radius: 12px;
-  overflow: hidden;
+  width: 250px ;
+  height: 350px ;
+  border-radius: 12px !important;
+  overflow: hidden !important;
 }
 
 .border-pink {
@@ -21,6 +22,11 @@
 }
 
 .card_B{
-  width: 250px; 
-  height: 350px;
+  width: 250px !important; 
+  height: 350px !important;
+}
+
+.card-title{
+  font-weight: bold;
+  font-size: large;
 }

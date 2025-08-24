@@ -1,0 +1,27 @@
+{% if pending_payments %}
+  <div class="payment-list">
+    {% for payment in pending_payments %}
+      <div class="payment-item p-3 mb-3 border rounded d-flex justify-content-between align-items-center">
+        <div>
+          <div>訂單編號：{{ payment.order.id }}</div>
+          <div>付款金額：{{ payment.amount }}$</div>
+          <div>付款方式：{{ payment.get_payment_method_display }}</div>
+          <div>買家：{{ payment.order.user.username }}</div>
+          <div>付款時間：{{ payment.pay_time }}</div>
+        </div>
+        <div>
+          <form method="post" action="{% url 'confirm_payment' payment.id %}" style="display:inline-block;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success btn-sm">確認付款</button>
+          </form>
+          <form method="post" action="{% url 'reject_payment' payment.id %}" style="display:inline-block; margin-left:10px;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger btn-sm">拒絕付款</button>
+          </form>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <p>目前沒有待確認的付款。</p>
+{% endif %}

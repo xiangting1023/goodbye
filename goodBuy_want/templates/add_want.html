@@ -13,6 +13,7 @@
     <div style="height: 48px;"></div>
     <div class="container py-5">
         <h3 class="shop-title mb-4">新增收物帖</h3>
+
         <div class="card shadow">
             <div class="card-body">
                 <form method="post" enctype="multipart/form-data">
@@ -44,16 +45,12 @@
                             <div class="mb-3">
                                 <label for="id_title" class="form-label">標題：</label>
                                 {{ form.title }}
-                                {% if form.title.errors %}
-                                    <div class="text-danger">{{ form.title.errors }}</div>
-                                {% endif %}
+                                {% include "common/field_error.html" with field=form.title %}
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">權限：</label>
                                 {{ form.permission }}
-                                {% if form.permission.errors %}
-                                    <div class="text-danger">{{ form.permission.errors }}</div>
-                                {% endif %}
+                                {% include "common/field_error.html" with field=form.permission %}
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">標籤（可自行新增）：</label>
@@ -79,9 +76,7 @@
                         
                         <label for="id_post_text" class="form-label">文字：</label>
                         <textarea name="post_text" id="id_post_text" class="form-control form-control-lg" rows="8">{% if form.post_text.value %}{{ form.post_text.value }}{% endif %}</textarea>
-                        {% if form.post_text.errors %}
-                            <div class="text-danger">{{ form.post_text.errors }}</div>
-                        {% endif %}
+                        {% include "common/field_error.html" with field=form.post_text %}
                     </div>
                             
                         </div>

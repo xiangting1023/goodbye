@@ -1,0 +1,121 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+    
+<head>
+    <meta charset="UTF-8">
+    <title>{{ profile_user.username }} 的個人檔案</title>
+    <link rel="stylesheet" href="{% static 'css/profile.css' %}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <div class="header">{% include 'base.html' %}</div>
+        <div class="profile-header">
+  {% if profile_user.profile.avatar %}
+    <img class="profile-avatar" src="{{ profile_user.profile.avatar.url }}" alt="頭像">
+  {% else %}
+    <img class="profile-avatar" src="{% static 'img/Defuser.png' %}" alt="預設頭像">
+  {% endif %}
+
+  <div class="profile-basic">
+    <h2>{{ profile_user.profile.nickname|default:profile_user.username }}</h2>
+
+    <div class="profile-stats">
+      <span><i class="fa-regular fa-calendar-plus"></i> 加入時間：<b class="value">{{ profile_user.date_joined|date:"Y/m/d" }}</b></span>
+      <span><i class="fa-regular fa-thumbs-up"></i> 信譽度：
+        <b class="value">{% if average_rank %}{{ average_rank }}{% else %}無評價{% endif %}</b>
+      </span>
+      <span><i class="fa-regular fa-user"></i> 粉絲數：<b class="value">{{ fans_count|default:0 }}</b></span>
+      <span><i class="fa-solid fa-store"></i> 賣場：<b class="value">{{ shop_count|default:0 }}</b></span>
+      {% comment %} <span><i class="fa-solid fa-cart-shopping"></i> 買過：<b class="value">{{ buy_count|default:0 }}</b></span> {% endcomment %}
+    </div>
+  </div>
+</div>
+<div class="profile-container">
+    
+    {% if block_reason %}
+        <div class="alert alert-danger" role="alert">{{ block_reason }}</div>
+    {% else %}
+    <!-- 售物卡片區 -->
+    <div class="profile-section-title">{{ profile_user.profile.nickname|default:profile_user.username }}的賣場：</div>
+    <div class="profile-card-list row">
+        {% for shop in user_shops|slice:":6" %}
+        <div class="col-lg-2 col-md-3 col-6 mb-4">
+            <div class="profile-card card h-100">
+                <a href="{% url 'shop' shop.id %}" class="text-decoration-none text-dark">
+                    {% if shop.cover_img %}
+                        <img src="{{ shop.cover_img.img.url }}" class="card-img-top" alt="賣場圖片">
+                    {% else %}
+                        <img src="{% static 'images/no-image.png' %}" class="card-img-top" alt="無圖片">
+                    {% endif %}
+                    <div class="card-body">
+                        <h6 class="card-title fw-bold">{{ shop.name|truncatechars:10 }}</h6>
+                        <p class="card-text text-danger">${{ shop.price_min }} - ${{ shop.price_max }}</p>
+                        <p class="card-sub">{{ shop.status }}</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+        {% if user_shops|length > 6 %}
+        <div class="col-12 text-end">
+            <button class="more-btn" onclick="window.location.href='{% url 'user_more' profile_user.id 'shops' %}'">
+                查看更多{{ request.user.profile.nickname }}的賣場 >>
+            </button>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 收物卡片區 -->
+   <div class="profile-section-title">{{ profile_user.profile.nickname|default:profile_user.username }}的收物文：</div>
+    <div class="profile-card-list row">
+        {% for want in user_wants|slice:":6" %}
+        <div class="col-lg-2 col-md-3 col-6 mb-4">
+            <div class="profile-card card h-100">
+                <a href="{% url 'want_detail' want.id %}" class="text-decoration-none text-dark">
+                    {% if want.cover_img %}
+                        <img src="{{ want.cover_img.img.url }}" class="card-img-top" alt="收物圖片">
+                    {% else %}
+                        <img src="{% static 'images/no-image.png' %}" class="card-img-top" alt="無圖片">
+                    {% endif %}
+                    <div class="card-body">
+                        <h6 class="card-title fw-bold">{{ want.title|truncatechars:10 }}</h6>
+                        <p class="card-sub">{{ want.status }}</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+        {% if user_wants|length > 6 %}
+            <div class="col-12 text-end">
+                <button class="more-btn" onclick="window.location.href='{% url 'user_more' profile_user.id 'wants' %}'">
+                    查看更多{{ request.user.profile.nickname }}的收物文 >>
+                </button>
+            </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- 加入黑名單按鈕 -->
+    {% if request.user.is_authenticated and request.user.id != profile_user.id %}
+        {% if is_blocked %}
+            <form method="POST" action="{% url 'blacklist_remove' %}">
+                {% csrf_token %}
+                <input type="hidden" name="black_user_id" value="{{ profile_user.id }}">
+                <button type="submit" class="btn btn-secondary">移除黑名單</button>
+            </form>
+        {% else %}
+            <form method="POST" action="{% url 'blacklist_add' %}">
+                {% csrf_token %}
+                <input type="hidden" name="black_user_id" value="{{ profile_user.id }}">
+                <button type="submit" class="btn btn-danger">加入黑名單</button>
+            </form>
+        {% endif %}
+    {% endif %}
+
+    
+</div>
+</body>
+</html>
+

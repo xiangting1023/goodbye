@@ -1,0 +1,117 @@
+:root {
+  --gb-bg: #f7f3ea;
+  --gb-text: #222;
+  --gb-muted: #6c757d;
+  --gb-pink: #f7a7b8;
+  --gb-pink-weak: #ffe9ef;
+  --gb-brand: #a3c6e0;
+  --gb-radius-lg: 16px;
+  --gb-radius-xl: 20px;
+  --gb-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
+  --gb-shadow-hover: 0 12px 26px rgba(0, 0, 0, 0.12);
+  --gb-header-h: 120px;
+}
+@media (max-width: 576px) {
+  :root { --gb-header-h: 88px; }
+}
+
+/* ========= 全局 ========= */
+html, body { margin: 0; color: var(--gb-text); }
+body.page-search { background: var(--gb-bg); }
+
+/* 固定 header 的占位 */
+body.page-search::before {
+  content: "";
+  display: block;
+  height: calc(var(--gb-header-h) + 16px);
+}
+
+/* 版心 */
+body.page-search > :not(header) {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 12px;
+}
+
+/* ========= 標題與追蹤 ========= */
+.search-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.search-title {
+  font-weight: 900;
+  font-size: clamp(22px, 3vw, 32px);
+  letter-spacing: 1px;
+}
+.btn-follow {
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-weight: 600;
+  border: 1px solid #ddd;
+  background: #fff;
+  color: #333;
+  transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+}
+.btn-follow:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--gb-shadow);
+  background: #f8f9fa;
+}
+
+/* ========= 標籤列 ========= */
+.tag-list { margin-bottom: 12px; }
+.tag-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tag-chip {
+  display: inline-block;
+  border-radius: 999px;
+  border: 1px solid #e9ecef;
+  padding: 8px 12px;
+  background: #fff;
+  color: #333;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.tag-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--gb-shadow);
+  border-color: #ddd;
+}
+
+/* ========= 卡片列 ========= */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 240px)); /* 固定卡片寬度 */
+  justify-content: start;   /* 靠左排列 */
+  gap: 12px;                /* 卡片間距 */
+}
+.card-grid .card {
+  width: 240px;             /* 卡片固定寬度 */
+  display: flex;
+  flex-direction: column;
+}
+.empty-text { color: var(--gb-muted); }
+
+/* ========= RWD ========= */
+@media (max-width: 900px) {
+  body.page-search::before { height: calc(88px + 12px); }
+  body.page-search > :not(header) { padding: 0 10px; }
+
+  .card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+}
+@media (max-width: 576px) {
+  .search-title { margin: 8px 0 12px; }
+  .btn-follow { padding: 6px 14px; }
+
+  .card-grid {
+    grid-template-columns: 1fr; /* 手機上一列一張 */
+  }
+}

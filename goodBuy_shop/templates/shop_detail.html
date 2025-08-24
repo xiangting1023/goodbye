@@ -10,18 +10,11 @@
 </head>
 <body>
     
-<div class="container mt-4">
+<div class="container">
     <div class="row">
-        <div class="col-md-8">
-            <div class="card p-3 mb-3">
-                <div class="d-flex align-items-center">
-                    <img src="{{ shop.owner.profile.avatar.url }}" class="avatar me-2">
-                    <div>
-                         <strong>{{ shop.owner.username }}</strong><br>
-                         <a href="{% url 'view_profile' shop.owner.id %}" class="fw-bold text-decoration-none">查看賣家</a>
-                    </div>
-                </div>
-            </div>
+
+            <!-- 賣家個人資料 -->
+            {% include 'info_s.html' %}
 
             <!-- 主卡片 -->
             <div class="card p-3 d-flex flex-column">
@@ -85,7 +78,10 @@
                             <div class="mb-3">
                                 <div class="d-flex flex-wrap gap-2">
                                     {% for tag in tags %}
-                                        <span class="badge bg-light text-dark">#{{ tag.name }}</span>
+                                        <a href="{% url 'tagBySearch' %}?keyWord={{ tag.name }}" 
+                                        class="badge bg-light text-dark text-decoration-none">
+                                        #{{ tag.name }}
+                                        </a>
                                     {% empty %}
                                         <span class="text-muted">尚未設定標籤</span>
                                     {% endfor %}
@@ -104,7 +100,7 @@
                                                 <div class="text-muted no-image-placeholder">暫無圖片</div>
                                             {% endif %}
                                         </div>
-                                        <div class="col">{{ product.id }}</div>
+                                        <div class="col">{{ product.name }}</div>
                                         <div class="col-md-4 text-danger">{{ product.price }}$</div>
                                         <div class="col-md-4">庫存：{{ product.remaining_quantity }}</div>
                                         <div class="col d-flex justify-content-end">
@@ -147,7 +143,14 @@
                         </p>
                         <p><strong>商品狀態：</strong>{{ shop.shop_state.name }}</p>
                         <p><strong>開始時間：</strong>{{ shop.start_time|date:"Y/m/d" }}</p>
-                        <p><strong>結束時間：</strong>{{ shop.end_time|date:"Y/m/d" }}</p>
+                        
+                        <!-- 截止時間 -->
+                        {% if shop.end_time.year >= 2099 %}
+                            <p><strong>結束時間：</strong>無截止</p>
+                        {% else %}
+                            <p><strong>結束時間：</strong>{{ shop.end_time|date:"Y/m/d" }}</p>
+                        {% endif %}
+
                         <p><strong>支援的付款方式：</strong>
                             {% if shop.shoppayment_set.all %}
                                 <ul>
@@ -211,7 +214,6 @@
                     <p class="text-muted">目前沒有公告</p>
                 {% endif %}
             </div>
-        </div>
     </div>
 </div>
 

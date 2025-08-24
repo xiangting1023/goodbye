@@ -14,45 +14,77 @@ from ..rush_utils import *
 from utils import *
 # -------------------------
 # 訂單顯示 - 全部 - 分類+all
+"""
+    訂單清單查詢
+    GET 參數：
+        - role: 'buyer' 或 'seller' (預設 buyer)
+        - shop: 商店 ID (可選，限制查詢特定商店)
+        - state: 訂單狀態或群組代號 (可選)
+
+    state 可傳的值：
+        - 'pending'   → 待付款 (order_state_id in [1, 3])
+        - 'ordered'   → 已下單 (order_state_id in [2, 4])
+        - 'cancelled' → 未成立 (order_state_id in [7, 8, 9, 10])
+        - 數字字串    → 指定單一狀態，例如 '5' = 出貨中
+        - 不傳       → 全部狀態
+"""
 # -------------------------
 @login_required(login_url='login')
 def order_list(request):
-    state = request.GET.get('state')
-    shop = request.GET.get('shop')
+    
+    # ==== 自定義群組 ====
+    STATE_GROUPS = {
+        "pending":   {"ids": [1, 3], "title": "待付款"},
+        "ordered":   {"ids": [2, 4], "title": "已下單"},
+        "cancelled": {"ids": [7, 8, 9, 10], "title": "未成立"},
+    }
 
-    orders = Order.objects.filter(user=request.user)
+    role = request.GET.get('role', 'buyer')
+    shop_id = request.GET.get('shop')
+    state_param = request.GET.get('state')
 
-    if shop:
+    # ---- 基本篩選：買家 or 賣家 ----
+    if role == 'buyer':
+        orders = Order.objects.filter(user=request.user)
+    elif role == 'seller':
+        orders = Order.objects.filter(shop__owner=request.user)
+    else:
+        orders = Order.objects.none()
+
+    shop = None
+    if shop_id:
         try:
-            shop = Shop.objects.get(id=shop)
-        except:
+            shop = Shop.objects.get(id=shop_id)
+        except Shop.DoesNotExist:
             messages.error(request, "商店不存在")
             return redirect('home')
-        
-        if shop.owner != request.user:
-            messages.error(request, "無權查看此商店的訂單")
-            return redirect('home')
-        
-        if shop.permission not in [1, 2]:
-            messages.error(request, "商店不存在")
-            return redirect('home')
-        
         orders = orders.filter(shop=shop)
 
-    if state:
-        if state == '7':
-            orders = orders.filter(order_state_id__in=[7, 8, 9, 10])
+    # ---- 狀態篩選 ----
+    title = "全部"
+    if state_param:
+        if state_param in STATE_GROUPS:
+            # 使用群組
+            orders = orders.filter(order_state_id__in=STATE_GROUPS[state_param]["ids"])
+            title = STATE_GROUPS[state_param]["title"]
+
         else:
-            orders = orders.filter(order_state_id=state)
+            # 嘗試當成單一狀態 id
+            try:
+                state_id = int(state_param)
+                orders = orders.filter(order_state_id=state_id)
+                title = OrderState.objects.get(id=state_id).name
+            except (ValueError, OrderState.DoesNotExist):
+                messages.warning(request, "無效的狀態參數")
+                title = "全部"
 
-    if state in ['7', '8', '9', '10']:
-        title = '已取消'
-    elif state:
-        title = OrderState.objects.get(id=state).name
-    else:
-        title = '全部'
+    return render(request, "order_list.html", {
+        "title": title,
+        "orders": orders,
+        "shop": shop,
+        "role": role,
+    })
 
-    return render(request, 'order_list.html', {'title': title, 'orders': orders, 'shop': shop})
 # -------------------------
 # 訂單顯示 - 單一
 # -------------------------
@@ -77,10 +109,12 @@ def order_detail(request, order):
         deposit_amount = order.total * deposit_ratio // 100
         tail_amount = (order.total - deposit_amount) + (order.second_supplement or 0)
 
-    return render(request, 'order_detail.html', {'product_orders': product_orders, 
+    return render(request, 'order_detail.html', {'order':order,
+                                                'product_orders': product_orders, 
                                                 'payment':payments,
                                                 'deposit_amount':deposit_amount,
                                                 'tail_amount':tail_amount})
+
 # -------------------------
 # 待付款&付款記錄顯示 - 僅買家
 # -------------------------
@@ -99,6 +133,7 @@ def my_payment_records(request):
                                                     'confirmed': confirmed,
                                                     'returned': returned,
                                                     'overdue': overdue})
+
 # -------------------------
 # 多帶進行中 - 買家
 # -------------------------
@@ -115,6 +150,7 @@ def my_rush_shops(request):
     shops = shopInformation_many(Shop.objects.filter(id__in=shop_ids))
 
     return render(request, 'my_rush_shops.html', {'shops': shops})
+
 # -------------------------
 # 多帶進行中 - 買家 - 單一
 # -------------------------
@@ -150,16 +186,25 @@ def my_rush_status_in_intent(request, shop, intent):
                                                             'total_price': total_price,
                                                             'target_summary': target_summary
                                                             })
+
 # -------------------------
 # 多帶進行中 - 購買優先表格
 # -------------------------
 @login_required(login_url='login')
 def purchase_priority_table(request, shop_id):
     shop = get_object_or_404(Shop, id=shop_id)
+
+    # 顯示標題與模式（2=金額優先；3=數量優先）
     priority_mode = 'amount' if shop.purchase_priority_id == 2 else 'quantity'
     title = "金額多帶優先表" if priority_mode == 'amount' else "數量多帶優先表"
 
-    products = list(Product.objects.filter(shop=shop, is_delete=False).only('id','name','stock','price'))
+    # 商品（只取有庫存、未刪除者；若你要顯示缺貨也能帶進來就拿掉 stock>0）
+    products = list(
+        Product.objects
+        .filter(shop=shop, is_delete=False)
+        .only('id', 'name', 'stock', 'price')
+        .order_by('id')
+    )
     if not products:
         return render(request, 'priority_table.html', {
             'shop': shop, 'priority_mode': priority_mode, 'priority_title': title,
@@ -169,66 +214,48 @@ def purchase_priority_table(request, shop_id):
     product_ids = [p.id for p in products]
     prod_by_id = {p.id: p for p in products}
 
-    intents = PurchaseIntent.objects.filter(shop=shop).select_related('user')
-    intent_ids = list(intents.values_list('id', flat=True))
-    user_by_intent = {pi.id: pi.user for pi in intents}
+    # 1) 取得「已排序」的使用者搶購摘要（核心：使用你剛完成的邏輯）
+    #    傳入 request.user 會讓 summaries 在自己那筆附上 self_view（可用於顯示）
+    summaries = get_rush_summaries(shop, user=request.user)
 
-    ip_qs = (IntentProduct.objects
-            .filter(intent_id__in=intent_ids, product_id__in=product_ids)
-            .values('intent_id','product_id')
-            .annotate(qty=Sum('quantity')))
+    # 2) 準備上方統計（buyers_summary）與每位買家對各商品的最終需求量
+    buyers_summary = []
+    buyer_rows = []  # 以 username + per_product 快取，便於分配矩陣使用
+    for s in summaries:
+        user = s['user']
+        username = getattr(getattr(user, 'profile', None), 'nickname', None) or user.username
 
-    # 聚合買家數據
-    buyers = {}
-    for row in ip_qs:
-        user = user_by_intent[row['intent_id']]
-        uid = user.id
-        pid = row['product_id']
-        qty = int(row['qty'] or 0)
-        if qty <= 0:
-            continue
-        if uid not in buyers:
-            buyers[uid] = {
-                'user': user,
-                'username': user.profile.nickname,
-                'per_product': defaultdict(int),
-                'total_qty': 0,
-                'total_amount': 0,
-            }
-        buyers[uid]['per_product'][pid] += qty
-        buyers[uid]['total_qty'] += qty
-        buyers[uid]['total_amount'] += qty * prod_by_id[pid].price
+        # s['products'] 為 [(product, quantity), ...]（或 namedtuple）
+        per_product = {ip.product.id: int(ip.quantity) for ip in s['products']}
 
-    buyer_list = list(buyers.values())
-    key_field = 'total_amount' if priority_mode == 'amount' else 'total_qty'
-    buyer_list.sort(key=lambda b: (b[key_field], b['user'].id), reverse=True)
+        buyers_summary.append({
+            'username': username,
+            'total_amount': s['total_price'],
+            'total_qty': s['total_quantity'],
+            'product_quantities': per_product,  # 若模板不用可移除
+        })
+        buyer_rows.append((username, per_product))
 
-    # 供上方總表使用的精簡資料
-    buyers_summary = [
-        {
-            'username': b['username'],
-            'total_amount': b['total_amount'],
-            'total_qty': b['total_qty'],
-            'product_quantities': dict(b['per_product']),  # 若你上方要看各品可留，否則可拿掉
-        }
-        for b in buyer_list
-    ]
-
-    # 生成分配矩陣（用「使用者名稱」填格）
+    # 3) 依排序結果，逐品項建立「分配矩陣」
+    #    alloc_col[pid] = ['userA','userA','userB', ...] 長度 <= stock
     alloc_col = {pid: [] for pid in product_ids}
-    for b in buyer_list:
-        for pid, want_qty in b['per_product'].items():
+    for username, per_product in buyer_rows:
+        for pid, want_qty in per_product.items():
+            if pid not in prod_by_id:
+                continue
             stock = prod_by_id[pid].stock
-            if stock <= 0:
+            if stock <= 0 or want_qty <= 0:
                 continue
             col = alloc_col[pid]
             free_slots = max(stock - len(col), 0)
             if free_slots <= 0:
                 continue
             take = min(want_qty, free_slots)
-            col.extend([b['username']] * take)  # ← 用名稱，不是 rank
+            # 以「需求件數」填入對應數量的 username（可視覺化誰拿到幾件）
+            col.extend([username] * take)
 
-    max_rows = max(p.stock for p in products) if products else 0
+    # 4) 組成表格資料（headers / rows）
+    max_rows = max((p.stock for p in products), default=0)
     headers = [{'id': p.id, 'name': p.name, 'stock': p.stock} for p in products]
 
     rows = []
@@ -238,9 +265,9 @@ def purchase_priority_table(request, shop_id):
             s = p.stock
             col = alloc_col[p.id]
             if r >= s:
-                cell = '-'          # 超出庫存列
+                cell = '-'                      # 超出庫存的列
             else:
-                cell = col[r] if r < len(col) else ''  # 有庫存未分配 → 空白
+                cell = col[r] if r < len(col) else ''  # 有庫存但尚未被分配
             row_cells.append(cell)
         rows.append(row_cells)
 

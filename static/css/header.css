@@ -20,21 +20,31 @@
 /* 隱藏的側邊欄 */
 .menu {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 270px;
-    height: 100vh;
-    background: #dde9f4;
-    box-shadow: 1px 0 8px rgba(0,0,0,0.08);
-    z-index: 1500;
-    transition: left 0.3s;
+    top: 120px;
+    left: -550px;
+    width: 350px;
+    height: calc(100vh - 120px); /* 扣掉 header 高度 */
+    background-color: rgba(219, 232, 242, 0.8);
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    z-index: 50;
+    transition: left 0.3s ease;
     overflow-y: auto;
-    padding: 0;
+    padding: 20px;
     border-right: 1.5px solid #bfd6e9;
     display: flex;
     flex-direction: column;
 }
 
+
+
+a .logout-btn {
+  text-decoration: none;
+}
+
+a.logout-link, /* 如果有額外 class */
+a[href*="logout"] {
+  text-decoration: none;
+}
 .logout-btn{
     background-color: #add3f8;
     color: #343434;
@@ -44,8 +54,8 @@
     border: none;
     cursor: pointer;
     display: block;
-    
-           
+    text-decoration: none;
+    font-weight: bold; 
 }
 .sidebar-bottom {
     margin-top: auto;
@@ -65,15 +75,15 @@
 .menu .user-info1 {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 20px 16px 16px 18px;
+    gap: 0px;
+    padding: 16px 8px 16px 0;
     border-bottom: 1.5px solid #bfd6e9;
-    background: transparent;
 }
 
+
 .menu .user-info1 img.avatar {
-    width: 62px;
-    height: 62px;
+    width: 90px;
+    height: 90px;
     border-radius: 50%;
     object-fit: cover;
     border: 2px solid #fff;
@@ -86,20 +96,41 @@
     justify-content: center;
 }
 .menu .user-info1 .name-edit h3 {
-    font-size: 22px;
+    margin: 0;
+    font-size: 35px;
     font-weight: bold;
-    margin: 0 0 2px 0;
-    color: #174c6d;
+    color: #000000;
     letter-spacing: 2px;
+    margin-left: 15px; /* 移除原本的 25% */
+    text-align: left;
 }
-
+/* 暱稱連結外觀像一般文字，但可點 */
+.menu .user-info1 .name-edit h3 .name-link {
+  color: #000000;
+  font-size: 35px;
+  margin-left: 15px; /* 移除原本的 25% */
+  text-decoration: none;
+  display: inline-block;
+  cursor: pointer;
+}
+/* 暱稱連結外觀像一般文字，但可點 */
+.menu .user-info1 .name-edit h3 .name-link {
+  color: #000000;
+  text-decoration: none;
+  display: inline-block;
+  cursor: pointer;
+}
 .menu .user-info1 .name-edit a {
-    font-size: 13px;
+    margin-top: 5px;
+    font-size: 15px;
     color: #0b2339;
+    text-decoration: none;
     opacity: 0.7;
-    margin-left: 2px;
-    margin-top: 0;
+    margin-left: 15px; /* 移除 20% */
     text-decoration: underline;
+    text-align: left;
+    white-space: nowrap;
+
 }
 
 .menu .btn-group {
@@ -113,7 +144,7 @@
 
 .menu .btn-group .Options {
     background: none;
-    color: #163658;
+    color: #585e64;
     border-radius: 0;
     width: 100%;
     padding: 12px 30px 12px 30px;
@@ -170,7 +201,7 @@
 }
 .sidebar-tracks a {
     display: block;
-    color: #23659c;
+    color: #464b4e;
     font-size: 15px;
     padding: 11px 0 11px 28px;
     text-decoration: none;
@@ -213,21 +244,6 @@
     opacity: 1;
 }
 /* ----------------------------------------------------- */
-.menu {
-    position: fixed;
-    top: 120px;
-    left: -550px;
-    width: 400px;
-    height: calc(100vh - 120px); /* 扣掉 header 高度 */
-    overflow-y: auto;
-    background-color: rgba(219, 232, 242, 0.8);
-    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-    transition: left 0.3s ease;
-    z-index: 50;
-    padding: 20px;
-    display: flex;            /* 新增這行！ */
-    flex-direction: column;   /* 新增這行！ */
-}
 
 /* 側邊欄滑出樣式 */
 .menu.active {
@@ -248,7 +264,7 @@
 
 .menu ul li a {
     text-decoration: none; /* 移除下劃線 */
-    color: #5476a7; /* 文字顏色 */
+    color: #575b62; /* 文字顏色 */
     font-size: 18px; /* 字體大小 */
 }
 
@@ -611,12 +627,6 @@
     margin-top: 8%;
 } */
 
-.menu .user-info1 img.avatar {
-    width: 90px;
-    height: 90px;
-    border-radius: 50%;
-    object-fit: cover;
-}
 
 
 .menu .social {
@@ -671,24 +681,8 @@
     justify-content: center;
 }
 
-.menu .user-info1 .name-edit h3 {
-    margin: 0;
-    font-size: 35px;
-    font-weight: bold;
-    color: #000000;
-    text-align: left; /* 名字靠左 */
-    margin-left: 25%;
-}
 
-.menu .user-info1 .name-edit a {
-    margin-top: 5px;
-    font-size: 15px;
-    color: black;
-    text-decoration: none;
-    text-align: left; /* 編輯資料也靠左 */
-    margin-left: 20%;
-    white-space: nowrap;
-}
+
 
 
 .user-target{
@@ -698,3 +692,18 @@
     margin-top: 5%;
     margin-left: 5%;
 }
+
+
+
+
+.menu .user-info1 .name-edit h3 .name-link:hover {
+  opacity: .9;
+}
+
+/* 讓「編輯個人資料」維持你原本的深色樣式，不去影響暱稱顏色 */
+.menu .user-info1 .name-edit a {
+  color: #000000;
+  text-decoration: underline;
+  opacity: .7;
+}
+

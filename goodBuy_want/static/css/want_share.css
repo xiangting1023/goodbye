@@ -1,0 +1,12 @@
+/* 讓卡片成網格排列 */
+.shared-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); /* 與 card 寬度對齊 */
+  gap: 16px;
+}
+
+/* 可有可無：讓卡片整張都可點 */
+.shared-card-link {
+  text-decoration: none;
+  color: inherit;
+}

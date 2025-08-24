@@ -1,10 +1,10 @@
 <!-- 子連結頁面 寫這個燒死我的腦-->
 {% load static %}
-
+<link rel="stylesheet" href="{% static 'css/card.css' %}">
 <!-- 卡片連結 (售物帖 / 收物帖） -->
 <a href="{% if type == 'sell' %}{% url 'shop' shop_id=shop.id %}{% else %}{% url 'want_detail' want_id=want.id %}{% endif %}" class="text-decoration-none">
    <!-- 卡片邊框 粉紅色：售物帖，藍色：收物帖） -->
-  <div class="card border-2 h-100 post-card {% if type == 'sell' %} border-pink {% else %} border-blue {% endif %}" class = "card_B">
+  <div class="card border-4 h-100 post-card {% if type == 'sell' %} border-pink {% else %} border-blue {% endif %}" class = "card_B">
     <!-- 圖片區 -->
     <div class="image-wrapper d-flex justify-content-center align-items-center">
       {% if type == 'sell' and shop.images.exists %}
@@ -17,13 +17,13 @@
     </div>
      <!-- 文字區 -->
     <div class="card-body d-flex flex-column justify-content-between">
-      <h5 class="card-title text-dark text-truncate">
+      <div class="card-title text-dark text-truncate">
         <!-- 看是售物帖還是收物帖 顯示標題 -->
         {% if type == 'sell' %}{{ shop.name }}{% else %}{{ want.title }}{% endif %}
-      </h5>
+      </div>
       <!-- 如果是售物 顯示商品價格間距 -->
       {% if type == 'sell' %}
-        <p class="card-text text-danger fw-bold">NT$ ${{ shop.price_min }} - ${{ shop.price_max }}</p>
+        <p class="card-text text-danger fw-bold">NTD ${{ shop.price_min }} - ${{ shop.price_max }}</p>
       {% endif %}
 
       <!-- 標籤區（最多顯示 3 個） -->

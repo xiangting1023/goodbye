@@ -1,95 +1,93 @@
+{% load static %}
+{% load get_item %}
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>付款與寄送資訊</title>
-  <link rel="stylesheet" href="/static/css/checkout/step2.css">
+  <link rel="stylesheet" href="{% static 'css/checkout/step2.css' %}">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
 </head>
-<body>
-    <!-- 步驟流程條 -->
-  <body data-checkout-step="2">
+<body data-checkout-step="2">
   {% include 'checkout/steps.html' %}
-  </body>
-  
-  <header>
-    {% include 'common/header.html' %}
-  </header>  
+  <header>{% include 'common/header.html' %}</header>
 
-  <div class="container">
+  <div class="container my-4">
     <form method="POST" action="{% url 'checkout_address_payment' %}">
       {% csrf_token %}
-
-      <!-- 付款方式 -->
-      <div class="block">
-        <div class="block-header">付款方式：</div>
+    
+      {% for order in orders %}
+      {% with total=order_totals|get_item:order.id payments=allowed_payments|get_item:order.id allow_dep=allow_deposit_by_order|get_item:order.id %}
+      <div class="block mb-3">
+        <div class="block-header d-flex justify-content-between align-items-center">
+          <div>付款方式：<strong>{{ order.shop.name }}</strong></div>
+          <div class="text-muted">小計：{{ total }}</div>
+        </div>
         <div class="block-body">
-          {% if shop_payments %}
-            <select name="payment_method" class="form-select">
-              {% for payment in shop_payments %}
-                <option value="{{ payment.id }}">{{ payment.get_method_display }}</option>
+          {% if payments and payments|length %}
+            <select name="payment_account_{{ order.id }}" class="form-select">
+              {% for sp in payments %}
+                {% with pa=sp.payment_account %}
+                  <option value="{{ pa.id }}">{{ pa.payment.name }}{% if pa.account %} - {{ pa.account }}{% endif %}</option>
+                {% endwith %}
               {% endfor %}
             </select>
           {% else %}
             <div class="fallback">賣家尚未設定付款方式，預設為取貨付款</div>
-            <input type="hidden" name="payment_method" value="cod">
+          {% endif %}
+
+          {% if allow_dep %}
+            <select name="payment_mode_{{ order.id }}" class="form-select mt-2">
+              <option value="full">一次付清</option>
+              <option value="split">訂金＋尾款</option>
+            </select>
+          {% else %}
+            <input type="hidden" name="payment_mode_{{ order.id }}" value="full">
           {% endif %}
         </div>
       </div>
+      {% endwith %}
+    {% endfor %}
+
 
       <!-- 寄送地址 -->
-      <div class="block">
-        <div class="block-header">
-          寄送地址：
-          {% if not user_address or not user_address.address or not user_address.city %}
-            <span class="hint">
-              <a href="{% url 'editprofile' %}?next={{ request.path }}">點我填寫固定地址 以後下單時就不用填嚕～</a>
-            </span>
-          {% endif %}
-        </div>
-        <div class="block-body">
-          <label>縣市：</label>
-          <select name="city">
-            {% for code, label in user_address.ADDRESS_MODE_CHOICES %}
-              <option value="{{ code }}" {% if user_address.city == code %}selected{% endif %}>{{ label }}</option>
-            {% endfor %}
-          </select>
-
-          <label>地址：</label>
-          <input type="text" name="detail_address" value="{{ user_address.address|default:'' }}">
-          {% if not user_address.address %}<span class="warning">請填寫</span>{% endif %}
+      <div class="block mb-3">
+        <div class="block-header">寄送地址：</div>
+        <div class="block-body row g-2">
+          <div class="col-12 col-md-4">
+            <label class="form-label">縣市：</label>
+            <select name="city" class="form-select">
+              {% for code,label in user_address.ADDRESS_MODE_CHOICES %}
+                <option value="{{ code }}" {% if user_address and user_address.city == code %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-12 col-md-8">
+            <label class="form-label">地址：</label>
+            <input type="text" class="form-control" name="detail_address" value="{{ user_address.address|default:'' }}">
+          </div>
         </div>
       </div>
 
       <!-- 收件人資料 -->
-      <div class="block">
-        <div class="block-header">
-          收件人資料：
-          {% if not user_address.name or not user_address.phone %}
-            <span class="hint">
-              <a href="{% url 'editprofile' %}?next={{ request.path }}">點我填寫固定資料 以後下單時就不用填嚕～</a>
-            </span>
-          {% endif %}
-        </div>
-
-        <div class="block-body">
-          <label>姓名：</label>
-          <input type="text" name="receiver_name" value="{{ user_address.name|default:'' }}">
-          {% if not user_address.name %}<span class="warning">請填寫</span>{% endif %}
-
-          <label>電話：</label>
-          <input type="text" name="receiver_phone" value="{{ user_address.phone|default:'' }}">
-          {% if not user_address.phone %}<span class="warning">請填寫</span>{% endif %}
+      <div class="block mb-3">
+        <div class="block-header">收件人資料：</div>
+        <div class="block-body row g-2">
+          <div class="col-12 col-md-6">
+            <label class="form-label">姓名：</label>
+            <input type="text" class="form-control" name="receiver_name" value="{{ user_address.name|default:'' }}">
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label">電話：</label>
+            <input type="text" class="form-control" name="receiver_phone" value="{{ user_address.phone|default:'' }}">
+          </div>
         </div>
       </div>
 
-      <input type="hidden" name="next" value="{{ request.GET.next }}">
-
-      <!-- 按鈕 -->
-      <div class="button-group">
-        <a href="{% url 'checkout' %}" class="btn-cancel">上一步</a>
-        <button type="submit" class="btn-confirm">下一步</button>
+      <div class="d-flex justify-content-between my-4">
+        <a href="{% url 'checkout' %}" class="btn btn-outline-secondary">上一步</a>
+        <button type="submit" class="btn btn-primary">下一步</button>
       </div>
     </form>
   </div>

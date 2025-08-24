@@ -1,23 +1,50 @@
+{% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+  <meta charset="UTF-8">
+  <title># {{ kw }} 的搜尋結果</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/tag_search.css' %}">
+  <link rel="stylesheet" href="{% static 'css/card.css' %}">
 </head>
-<body>
-    <h2>搜尋標籤關鍵字：「{{ kw }}」的結果</h2>
+<body class="page-search">
+   <header>{% include "common/header.html" %}</header> 
 
-    {% if tags %}
-        <ul>
-            {% for tag in tags %}
-            <li>
-                <a href="{% url 'tagById_one' tag.id %}">{{ tag.name }}</a>
-            </li>
-            {% endfor %}
-        </ul>
+   <!-- 標題 + 追蹤按鈕 -->
+   <div class="search-header">
+     <h1 class="search-title"># {{ kw }}</h1>
+     <button
+    class="collect-btn btn btn-sm {% if current_tag.is_following %}btn-secondary{% else %}btn-outline-secondary{% endif %}"
+    data-tag-id="{{ current_tag.id }}">
+    {% if current_tag.is_following %}已追蹤{% else %}追蹤{% endif %}
+    </button>
+   </div>
+
+   {% if tags %}
+   <div class="tag-list">
+     <div class="tag-items">
+       {% for t in tags %}
+         <a href="{% url 'tagById_one' t.id %}" class="tag-chip">
+           #{{ t.name }}
+         </a>
+       {% endfor %}
+     </div>
+   </div>
+   {% endif %}
+
+   {% if shops %}
+    <div class="card-grid">
+        {% for shop in shops %}
+        <div class="card-item">
+            {% include "common/card.html" with type="sell" shop=shop %}
+        </div>
+        {% endfor %}
+    </div>
     {% else %}
-        <p>沒有找到符合的標籤。</p>
+    <div class="empty-text">沒有找到符合「{{ kw }}」的商店。</div>
     {% endif %}
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

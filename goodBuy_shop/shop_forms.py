@@ -18,7 +18,7 @@ class ShopForm(forms.ModelForm):
 
     payment_ids = forms.ModelMultipleChoiceField(
         queryset=PaymentAccount.objects.none(),
-        required=False,
+        required=False,  # 先設 False，在 clean() 裡自訂強制規則
         widget=forms.CheckboxSelectMultiple
     )
 
@@ -53,13 +53,40 @@ class ShopForm(forms.ModelForm):
 
         super().__init__(*args, **kwargs)
 
+        # 只允許 permission 顯示 id 1/2，並移除空白選項
         self.fields['permission'].queryset = Permission.objects.filter(id__in=[1, 2])
+        self.fields['permission'].empty_label = None
 
+        # shop_state / purchase_priority 也移除空白選項
+        # （假設兩者是外鍵 ModelChoiceField；若是 IntegerField + choices 可忽略）
+        if hasattr(self.fields['shop_state'], 'empty_label'):
+            self.fields['shop_state'].empty_label = None
+        if hasattr(self.fields['purchase_priority'], 'empty_label'):
+            self.fields['purchase_priority'].empty_label = None
+
+        # 預設值（僅建立時、生的 GET 顯示用；編輯或 POST 就不動）
+        if not self.is_edit and not self.data:
+            # 這裡假設三個 model 的 id=1 為你想要的預設
+            # 若專案中預設不是 1，換成實際 id 或改成 .first()
+            default_shop_state = getattr(ShopState.objects.filter(id=1).first(), 'id', None)
+            default_priority = getattr(PurchasePriority.objects.filter(id=1).first(), 'id', None)
+            default_permission = getattr(Permission.objects.filter(id=1).first(), 'id', None)
+
+            if default_shop_state is not None:
+                self.fields['shop_state'].initial = default_shop_state
+            if default_priority is not None:
+                self.fields['purchase_priority'].initial = default_priority
+            if default_permission is not None:
+                self.fields['permission'].initial = default_permission
+
+        # 付款帳號清單
         if self.user:
             user_accounts = PaymentAccount.objects.filter(user=self.user, is_delete=False)
 
             if self.is_edit:
-                shop_account_ids = ShopPayment.objects.filter(shop=self.instance).values_list('payment_account_id', flat=True)
+                shop_account_ids = ShopPayment.objects.filter(
+                    shop=self.instance
+                ).values_list('payment_account_id', flat=True)
                 shop_accounts = PaymentAccount.objects.filter(id__in=shop_account_ids)
                 full_queryset = (user_accounts | shop_accounts).distinct()
             else:
@@ -72,10 +99,46 @@ class ShopForm(forms.ModelForm):
                 shop=self.instance
             ).values_list('payment_account_id', flat=True)
 
+    def clean(self):
+        cleaned = super().clean()
+
+        # --- 1) 商店名稱不可為空（去空白）
+        name = cleaned.get('name')
+        if name is None or not str(name).strip():
+            self.add_error('name', '商店名稱不可為空（不得全為空白）。')
+        else:
+            cleaned['name'] = str(name).strip()
+
+        # --- 2) 至少選一種支援的付款方式
+        payment_qs = cleaned.get('payment_ids')
+        # ModelMultipleChoiceField 回來是 queryset-like；用 exists() / len 檢查都可
+        if not payment_qs or payment_qs.count() == 0:
+            self.add_error('payment_ids', '請至少選擇一種支援的付款方式。')
+
+        # --- 3) 金額/數量優先 ⇒ 必須有結單時間；且 end > start
+        start_time = cleaned.get('start_time')
+        end_time   = cleaned.get('end_time')
+        priority   = cleaned.get('purchase_priority')
+
+        def _priority_value(p):
+            if p is None:
+                return None
+            return getattr(p, 'id', p)  # 外鍵用 p.id，整數用 p
+
+        pval = _priority_value(priority)
+
+        if pval in (2, 3) and not end_time:
+            self.add_error('end_time', '使用「金額/數量優先」分配時，必須設定結單時間。')
+
+        if start_time and end_time and end_time <= start_time:
+            self.add_error('end_time', '結單時間必須晚於開始時間。')
+
+        return cleaned
 
     def save(self, commit=True):
         shop = super().save(commit=False)
 
+        # 你原本的時間轉換
         shop.start_time = timeFormatChange_now(shop.start_time)
         shop.end_time = timeFormatChange_longtime(shop.end_time)
 
@@ -90,6 +153,7 @@ class ShopForm(forms.ModelForm):
 
             payment_ids = set(self.cleaned_data.get('payment_ids').values_list('id', flat=True))
             old_payment_ids = set(ShopPayment.objects.filter(shop=shop).values_list('payment_account_id', flat=True))
+
             if self.is_edit:
                 for pid in payment_ids - old_payment_ids:
                     ShopPayment.objects.create(shop=shop, payment_account_id=pid)

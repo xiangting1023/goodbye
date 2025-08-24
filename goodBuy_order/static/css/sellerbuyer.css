@@ -1,14 +1,7 @@
 body {
-  background-color: #fdf7ec;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-.page-title {
-  text-align: center;
-  font-weight: bold;
-  font-size: 2rem;
-  margin-top: 40px;
-  margin-bottom: 30px;
+    background: #FDF7EC !important;
+    color: #333;
+    margin-top: 150px;
 }
 
 .action-buttons {
@@ -19,16 +12,29 @@ body {
 }
 
 .action-btn {
-  padding: 12px 30px;
-  border-radius: 50px; /* 橢圓形按鈕 */
+  width: 200px;
+  padding: 10px; /* 加大按鈕 */
+  border-radius: 70px; /* 橢圓形 */
   font-weight: bold;
-  border: 2px solid #ffa07a;
-  background-color: #fff5ee;
-  color: #ff6347;
+  border: 2px solid #ff99aa; /* 深粉紅邊框 */
+  background-color: #fdfdfd; /* 比原本稍淺的底色 */
+  color: #ff99aa; /* 文字用深粉紅 */
   transition: all 0.3s ease;
+  margin-right: 30px; /* 按鈕間距 */
+  cursor: pointer;
+   font-size: 15px;    
+   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* 選取後的按鈕樣式 */
+.action-btn.active {
+  background-color: #ff99aa; /* 按鈕底色改成深粉紅 */
+  color: white; /* 文字白色 */
+  border-color: #ff99aa;
 }
 
 .action-btn:hover {
-  background-color: #ff6347;
+  background-color: #ff99aa;
   color: white;
 }
+

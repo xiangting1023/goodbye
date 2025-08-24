@@ -191,13 +191,12 @@ def shopBySearch(request, user=None):
 def shopByTag(request, tag):
     if request.user.is_authenticated:
         shops = personalized_shop_recommendation(
-            user=request.user,
-            tags=[tag.name],
-            exclude_seen=False,
-            limit=100
+            request=request,
+            tags=tag,
+            limit=50
         )
     else:
-        shops = get_hot_shops(limit=100, tag=tag)
+        shops = get_hot_shops(request=request, limit=50, tag=tag)
     shops = shopInformation_many(shops)
     return render(request, '搜尋結果界面', locals())
 

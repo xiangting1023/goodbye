@@ -1,0 +1,16 @@
+<form method="post" action="{% url 'choose_payment_method' order.id %}">
+    {% csrf_token %}
+    <div class="mb-2">
+        <label class="form-label">付款方式</label>
+        {{ form.payment_method }}
+    </div>
+
+    {% if remittance_qs.exists %}
+        <div class="mb-2">
+        <label class="form-label">匯款帳戶</label>
+        {{ form.payment_account }}
+        </div>
+    {% endif %}
+
+    <button class="btn btn-primary">確認</button>
+</form>

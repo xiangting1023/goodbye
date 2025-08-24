@@ -24,6 +24,11 @@ from ..yolo_models.yolo_detect  import crop_detected_objects
 # -------------------------
 @login_required(login_url='login')
 def add_shop(request):
+    if not PaymentAccount.active.filter(user=request.user).exists():
+        messages.error(request, "請先到「付款帳號管理」新增至少一組帳號，才能建立商店。")
+        print("使用者沒有付款帳號，無法建立商店")
+        return redirect("payment_accounts")
+    
     form = ShopForm(request.POST or None, request.FILES or None, user=request.user)
     selected_images = request.session.get('final_selected_images', [])
     if request.method == 'POST':

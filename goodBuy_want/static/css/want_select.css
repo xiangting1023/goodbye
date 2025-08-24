@@ -1,0 +1,55 @@
+.collecttile {
+  font-size: 1.5rem;     /* 1rem = 預設 16px，1.5rem = 24px */
+  font-weight: bold;   
+  margin-top: 5%;
+  margin-right: 200px;     /* 向左靠一點（你可以調整） */
+  margin-bottom: -200px;      
+  display: inline-block; /* 讓 margin-top 生效 */
+  position: relative;
+  top: 30px;
+}
+
+body {
+  padding-top: 128px; 
+}
+
+.collecttile {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-top: 2rem;        
+  margin-bottom: 5px;     
+  display: block;          
+  position: relative;
+  top: 0;                  
+}
+
+/* 無收藏時的提示樣式 */
+.empty-hint {
+  color: #6c757d; /* Bootstrap 的 text-muted 顏色 */
+}
+
+/* 標籤樣式統一 */
+.card .badge {
+  font-size: 0.85rem;
+  margin-right: 4px;
+}
+
+/* 遮罩文字置中 */
+.card .position-absolute {
+  text-align: center;
+}
+
+/* 被選卡片給綠框 */
+.card-selectable { cursor: pointer; }
+.card-selectable.selected .post-card { outline: 3px solid #16a34a; }
+.picked-tip { display:none; color:#16a34a; font-size:12px; margin-top:6px; }
+.card-selectable.selected .picked-tip { display:inline-block; }
+
+.btn-primary {
+    background-color: #F4A7B9 !important;
+    color: white !important;
+    padding: 10px 30px; 
+    border-radius: 10px;
+    border: none;
+    font-weight: bold;
+}

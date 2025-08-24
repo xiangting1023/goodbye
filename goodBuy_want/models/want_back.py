@@ -18,4 +18,4 @@ class WantBack(models.Model):
         ]
     
     def __str__(self):
-        return self.shop
+        return f"{self.user} 以「{self.shop}」回覆收物帖 {self.want_id}"

@@ -1,0 +1,16 @@
+{% if waiting_receiving %}
+  <div class="order-list">
+    {% for item in waiting_receiving %}
+      <div class="card mb-3 shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">訂單編號：{{ item.order.id }}</h5>
+          <p class="mb-1"><strong>商品：</strong>{{ item.product.name }}</p>
+          <p class="mb-1"><strong>寄送狀態：</strong>{{ item.shipping_status }}</p>
+          <a href="{% url 'confirm_received' item.id %}" class="btn btn-warning">確認收貨</a>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <p>目前沒有待收貨的訂單。</p>
+{% endif %}

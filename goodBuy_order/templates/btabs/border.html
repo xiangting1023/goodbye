@@ -1,0 +1,17 @@
+{% if my_orders %}
+  <div class="order-list">
+    {% for item in my_orders %}
+      <div class="card mb-3 shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">商品名稱：{{ item.product.name }}</h5>
+          <p class="mb-1"><strong>數量：</strong>{{ item.quantity }}</p>
+          <p class="mb-1"><strong>賣家：</strong>{{ item.product.seller.username }}</p>
+          <p class="mb-1"><strong>金額：</strong>${{ item.total_price }}</p>
+          <a href="{% url 'place_order' item.id %}" class="btn btn-primary">立即下單</a>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <p>目前沒有待下單的商品。</p>
+{% endif %}

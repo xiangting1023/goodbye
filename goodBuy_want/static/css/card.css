@@ -1,0 +1,32 @@
+.card-img-top {
+  width: 222px;
+  height: 222px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-top: 12px;
+}
+
+.post-card {
+  width: 250px;
+  height: 350px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.border-pink {
+  border-color: #F4A7B9 !important;
+}
+
+.border-blue {
+  border-color: #A3C6E0 !important;
+}
+
+.card_B{
+  width: 250px; 
+  height: 350px;
+}
+
+.card-title{
+  font-weight: bold;
+  font-size: large;
+}

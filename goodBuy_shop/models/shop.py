@@ -32,9 +32,26 @@ class Shop(models.Model):
     
     # 商店是否截止
     @property
-    def is_end(self):
+    def can_reply(self):
+        """回覆規則：未到 start 也允許；超過 end 或非公開(perm!=1)就不允許。"""
         now = timezone.now()
-        return (now > self.end_time) or (now < self.start_time) or (self.permission.id != 1)
+        if self.permission_id != 1:
+            return False
+        if self.end_time and now >= self.end_time:
+            return False
+        return True  # 未到 start 也可
+
+    @property
+    def can_order(self):
+        """下單/加入購物車規則：必須已到 start，且未過 end，且公開。"""
+        now = timezone.now()
+        if self.permission_id != 1:
+            return False
+        if self.start_time and now < self.start_time:
+            return False
+        if self.end_time and now >= self.end_time:  # 到點就關：>=
+            return False
+        return True
     
     # 商店總銷量，多帶則是已有多少人參與
     @property

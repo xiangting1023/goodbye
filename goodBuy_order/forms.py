@@ -1,10 +1,10 @@
 from django import forms
 from .models import Order
 from goodBuy_web.models import UserAddress
-from goodBuy_order.models import OrderPayment
+from goodBuy_order.models import OrderPayment, Order, Comment
 
 from django import forms
-from goodBuy_order.models import Order, Comment
+from goodBuy_shop.models import ShopPayment
 
 # -------------------------
 # 訂單新增 地址、付款方式選擇
@@ -72,6 +72,50 @@ class OrderForm(forms.ModelForm):
         if shop and not shop.deposit:
             self.fields['payment_mode'].widget = forms.HiddenInput()
             self.fields['payment_mode'].required = False
+
+# -------------------------
+# 選擇付款方式
+# -------------------------
+PAYMENT_KIND_BANK = 'bank'
+PAYMENT_KIND_COD  = 'cod'  
+
+class ChoosePaymentForm(forms.Form):
+    payment_method = forms.ChoiceField(
+        choices=[(PAYMENT_KIND_COD, '取貨付款'), (PAYMENT_KIND_BANK, '銀行匯款')],
+        widget=forms.RadioSelect
+    )
+    payment_account = forms.ModelChoiceField(
+        queryset=ShopPayment.objects.none(),  # 預設空 QuerySet
+        required=False,
+        empty_label=None,
+        widget=forms.RadioSelect
+    )
+
+    def __init__(self, *args, shop=None, remittance_qs=None, **kwargs):
+        """
+        shop: 當前訂單所屬商店（目前僅做語意保留）
+        remittance_qs: 該商店的「銀行匯款」ShopPayment 查詢集
+        """
+        super().__init__(*args, **kwargs)
+        self.shop = shop
+        self.remittance_qs = remittance_qs if remittance_qs is not None else ShopPayment.objects.none()
+        self.fields['payment_account'].queryset = self.remittance_qs
+
+    def clean(self):
+        cleaned = super().clean()
+        method = cleaned.get('payment_method')
+        account = cleaned.get('payment_account')
+
+        if method == PAYMENT_KIND_BANK:
+            if not self.remittance_qs.exists():
+                raise forms.ValidationError('此商店未設定銀行匯款帳戶')
+            if not account:
+                self.add_error('payment_account', '請選擇匯款帳戶')
+            elif not self.remittance_qs.filter(pk=account.pk).exists():
+                self.add_error('payment_account', '匯款帳戶無效')
+
+        return cleaned
+
 # -------------------------
 # 上傳付款憑證
 # -------------------------

@@ -44,10 +44,16 @@
         <img src="/static/img/Defuser.png" class="avatar">
       {% endif %}
       <div class="name-edit">
-        <h3>{{ request.user.username }}</h3>
+        <h3 class="user-name">
+        <a href="{% url 'view_profile' request.user.id %}" class="name-link">
+          {{ request.user.profile.nickname|default:request.user.username }}
+        </a>
+      </h3>
         <a href="/user/editprofile/">點擊編輯個人資料&gt;</a>
+        
       </div>
     </div>
+    
     <!-- 分組功能區 -->
     <ul class="sidebar-links">
       <br>
@@ -61,13 +67,13 @@
       <br>
       <li><a href="/shop/add/">新增賣場</a></li>
       <li><a href="{% url 'view_profile' request.user.id %}">我的賣場</a></li>
-      <li><a href="#">賣方管理</a></li>
+      <li><a href="{% url 'seller' %}">賣方管理</a></li>
     </ul>
     <hr>
     <ul class="sidebar-links">
       <br>
       <li><a href="/want/add/">發布收物帖</a></li>
-      <li><a href="#">買方管理</a></li>
+      <li><a href="{% url 'buyer' %}">買方管理</a></li>
     </ul>
     
     <hr>

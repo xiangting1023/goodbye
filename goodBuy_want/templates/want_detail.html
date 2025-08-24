@@ -7,53 +7,16 @@
     <title>{{ want.title }} - 收物帖詳情</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/want_detail.css' %}">
-
+    <link rel="stylesheet" href="{% static 'css/card.css' %}">
+    <link rel="stylesheet" href="{% static 'css/want_share.css' %}">
     {% include 'common/header.html' %}
 </head>
 <body>
     <div class="container main-content">
         <div class="row g-0">
-
             <!-- 上方資訊 -->
-                <div class="card mb-4 no-padding">
-                    <div class="card-header bg-light">
-                        <h5 class="mb-0 d-none">發布者資訊</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="d-flex align-items-center">
-                            <img src="{{ want.user.profile.avatar.url }}" class="avatar">
-                            <div>
-                                <strong>{{ want.user.username }}</strong>
-                                <p class="text-muted mb-0 small">註冊時間：{{ want.user.date_joined|date:"Y/m/d" }}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                {% if backs %}
-                <div class="card">
-                    <div class="card-header bg-light">
-                        <h5 class="mb-0">回應清單</h5>
-                    </div>
-                    <div class="card-body">
-                        <ul class="list-group">
-                        {% for back in backs %}
-                            <li class="list-group-item">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <strong>{{ back.user.username }}</strong> 以 <strong>{{ back.shop.name }}</strong> 回應
-                                    </div>
-                                    <small class="text-muted">{{ back.date|date:"Y/m/d H:i" }}</small>
-                                </div>
-                                <a href="{% url 'shop_detail' shop_id=back.shop.id %}" class="btn btn-sm btn-outline-primary mt-2">查看商店</a>
-                            </li>
-                        {% empty %}
-                            <li class="list-group-item">目前沒有回應</li>
-                        {% endfor %}
-                        </ul>
-                    </div>
-                </div>
-                {% endif %}
+                <!-- 收物主個人資訊 -->
+                {% include 'info_w.html' %}
             </div>
             
             <!-- 收物帖詳情 -->             
@@ -118,7 +81,10 @@
                                 <div class="mb-3">
                                     <div class="d-flex flex-wrap gap-2">
                                         {% for tag in tags %}
-                                            <span class="badge bg-light text-dark">#{{ tag.name }}</span>
+                                            <a href="{% url 'tagBySearch' %}?keyWord={{ tag.name }}" 
+                                            class="badge bg-light text-dark text-decoration-none">
+                                            #{{ tag.name }}
+                                            </a>
                                         {% empty %}
                                             <span class="text-muted">尚未設定標籤</span>
                                         {% endfor %}
@@ -134,13 +100,31 @@
                                 </div>
                             </div>
                         </div>
-
                 </div>
-            </div>
+                
+                <!-- 分享售物帖按鈕 -->
+                {% if request.user.is_authenticated and request.user != want.user %}
+                    <a href="{% url 'choose_shop_and_reply' want_id=want.id %}" class="btn btn-outline-primary">
+                        <img src="{% static 'img/send.png' %}" class="me-1" style="width:18px;height:18px;"> 分享售物帖
+                    </a>
+                {% endif %}
 
+            </div>
         </div>
+        <!-- 別人分享的賣場 -->
+        {% if request.user.is_authenticated and request.user.id == want.user_id and shared_shops %}
+            <hr>
+            <h5 class="mb-3">有人分享了以下賣場給你：</h5>
+            <div class="shared-grid">
+                {% for s in shared_shops %}
+                    <a class="shared-card-link" href="{% url 'shop' shop_id=s.id %}">
+                        {% include "common/card_item.html" with type='sell' shop=s %}
+                    </a>
+                {% endfor %}
+            </div>
+        {% endif %}
     </div>
-    
+
     {% if request.user == want.user %}
     <!-- 刪除確認彈窗 -->
     <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
@@ -161,7 +145,7 @@
         </div>
     </div>
     {% endif %}
-    
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{% static 'js/want_detail.js' %}"></script>
 </body>

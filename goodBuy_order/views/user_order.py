@@ -13,147 +13,14 @@ from ..forms import *
 from ..utils import *
 from utils.decorators_shortcuts import *
 from goodBuy_web.models.user_address import UserAddress
+
+# 把 PaymentAccount.payment.name（中文/顯示名）對應到 Order.payment_category choices 的值
+PAYMENT_NAME_TO_CHOICE = { '取貨付款': 'cash_on_delivery', '匯款': 'remittance',}
+COD_NAMES = {'取貨付款', '貨到付款', 'COD'}
+
 # -------------------------
 # 商品下單
 # -------------------------
-'''
-@login_required(login_url='login')
-def checkout(request):
-    cart_ids = request.POST.getlist('cart_ids') if request.method == 'POST' else []
-    product_id = request.GET.get('product_id')
-    quantity = int(request.GET.get('quantity', 1))
-
-    shop_groups = defaultdict(list)
-    cart_items = []
-    single_product = None
-
-    # 單品快速下單（來源為 GET）
-    if product_id:
-        product = get_object_or_404(Product, id=product_id, is_delete=False)
-        shop = product.shop
-        shop_groups[shop].append({'product': product, 'quantity': quantity})
-        single_product = product
-
-    # 購物車下單（來源為 POST）
-    elif cart_ids:
-        cart_items = Cart.objects.select_related('product__shop').filter(id__in=cart_ids, user=request.user)
-        if not cart_items:
-            messages.error(request, '購物車資料無效')
-            return redirect('cart')
-
-        for item in cart_items:
-            product = item.product
-            shop_groups[product.shop].append({'product': product, 'quantity': item.amount})
-
-    else:
-        messages.error(request, '無有效商品')
-        return redirect('cart')
-
-    orders_created = []
-    if request.method == 'POST' and 'checkout_submit' in request.POST:
-        # 為每間 shop 處理一次下單流程
-        for shop, items in shop_groups.items():
-            if shop.is_end:
-                messages.error(request, f'{shop.name} 商店已結束營業')
-                continue
-
-            form = OrderForm(request.POST, user=request.user, shop=shop)
-            if not form.is_valid():
-                messages.error(request, f'{shop.name} 的表單驗證失敗')
-                continue
-
-            address = form.cleaned_data['address']
-            payment_method = form.cleaned_data['payment_method']
-            payment_mode = form.cleaned_data.get('payment_mode')
-
-            # 搶購流程
-            if shop.purchase_priority_id != 1:
-                shop = maybe_extend_rush(shop)
-                intent, _ = PurchaseIntent.objects.get_or_create(user=request.user, shop=shop)
-
-                for item in items:
-                    product = item['product']
-                    qty = item['quantity']
-                    intent_product, created = IntentProduct.objects.get_or_create(intent=intent, product=product)
-
-                    current_total = IntentProduct.objects.filter(product=product).exclude(id=intent_product.id).aggregate(
-                        total=Sum('quantity')
-                    )['total'] or 0
-                    available_qty = max(product.stock - current_total, 0)
-
-                    if created:
-                        intent_product.quantity = min(qty, available_qty)
-                    else:
-                        intent_product.quantity = min(intent_product.quantity + qty, available_qty)
-
-                    intent_product.save()
-
-                    if qty > available_qty:
-                        messages.warning(request, f'{product.name} 庫存不足，已調整為 {available_qty} 件')
-
-                messages.success(request, f'{shop.name} 多帶商品已加入')
-                continue
-
-            # 一般建立訂單流程
-            try:
-                with transaction.atomic():
-                    total = 0
-                    locked_products = []
-
-                    for item in items:
-                        product = Product.objects.select_for_update().get(id=item['product'].id)
-                        qty = item['quantity']
-                        if product.stock < qty:
-                            raise Exception(f'{product.name} 庫存不足')
-                        product.stock = F('stock') - qty
-                        product.save()
-                        total += product.price * qty
-                        locked_products.append((product, qty))
-
-                    if payment_method == 'cash_on_delivery':
-                        pay_state = 1
-                        payment_mode = 'full'
-                    else:
-                        pay_state = 2 if payment_mode == 'deposit' else 8
-
-                    order = Order.objects.create(
-                        user=request.user,
-                        shop=shop,
-                        total=total,
-                        address=address,
-                        payment_category=payment_method,
-                        payment_mode=payment_mode,
-                        pay_state_id=PayState.objects.get(id=pay_state),
-                        order_state_id=1,
-                        second_supplement=0,
-                        pay=None
-                    )
-
-                    for product, qty in locked_products:
-                        ProductOrder.objects.create(order=order, product=product, amount=qty)
-
-                    orders_created.append(order)
-                    messages.success(request, f'{shop.name} 訂單已建立')
-            except Exception as e:
-                messages.error(request, f'{shop.name} 下單失敗：{e}')
-
-        # 清除購物車項目
-        if cart_items:
-            cart_items.delete()
-
-        if orders_created:
-            return redirect('order_list')
-
-    # 顯示頁面（GET）
-    form_by_shop = {shop: OrderForm(user=request.user, shop=shop) for shop in shop_groups}
-
-    return render(request, 'checkout.html', {
-        'shop_groups': shop_groups,
-        'form_by_shop': form_by_shop,
-        'single_product': single_product,
-    })
-'''
-
 @login_required(login_url='login')
 def checkout_step1(request):
     cart_ids = request.POST.getlist('cart_ids') if request.method == 'POST' else []
@@ -169,12 +36,15 @@ def checkout_step1(request):
         product = get_object_or_404(Product, id=product_id, is_delete=False)
         if product.stock < quantity:
             messages.error(request, f'{product.name} 庫存不足')
+            print(f'{product.name} 庫存不足')
             return redirect('cart')
         if product.shop.permission_id != 1:
             messages.error(request, f'{product.shop.name} 商店已下架')
+            print(f'{product.shop.name} 商店已下架')
             return redirect('cart')
-        if product.shop.is_end:
+        if not product.shop.can_order:
             messages.error(request, f'{product.shop.name} 商店尚未開啟或已結束')
+            print(f'{product.shop.name} 商店尚未開啟或已結束')
             return redirect('cart')
         
         shop_groups[product.shop].append({'product': product, 'quantity': quantity})
@@ -185,13 +55,16 @@ def checkout_step1(request):
             messages.error(request, '購物車資料無效')
             return redirect('cart')
         for item in cart_items:
-            if item.product.stock < quantity:
+            if item.product.stock < item.quantity:
                 messages.error(request, f'{item.product.name} 庫存不足')
+                print(f'{item.product.name} 庫存不足')
                 return redirect('cart')
             if item.product.shop.permission_id != 1:
                 messages.error(request, f'{item.product.shop.name} 商店已下架')
-            if item.product.shop.is_end:
+                print(f'{item.product.shop.name} 商店已下架')
+            if not item.product.shop.can_order:
                 messages.error(request, f'{item.product.shop.name} 商店尚未開啟或已結束')
+                print(f'{item.product.shop.name} 商店尚未開啟或已結束')
                 return redirect('cart')
             
             shop_groups[item.product.shop].append({'product': item.product, 'quantity': item.quantity})
@@ -340,6 +213,7 @@ def checkout_step1(request):
         'is_rush_mode': is_rush_mode,
     })
 
+
 @login_required(login_url='login')
 def checkout_step2(request):
     order_ids = request.session.get('pending_order_ids')
@@ -347,84 +221,111 @@ def checkout_step2(request):
         messages.error(request, '找不到待處理的訂單')
         return redirect('checkout')
 
-    orders = Order.objects.filter(id__in=order_ids, user=request.user, pay_state_id=10)
+    orders = (
+        Order.objects
+        .filter(id__in=order_ids, user=request.user, pay_state_id=10)  # 10: 你原本的「待設定」狀態
+        .select_related('shop')
+    )
     if not orders:
         messages.error(request, '訂單已處理或不存在')
         return redirect('order_list')
 
-    form_by_order = {order.shop.id: OrderForm(user=request.user, shop=order.shop) for order in orders}
-    addresses = UserAddress.objects.filter(user=request.user)
+    # 小計
+    order_totals = {
+        o.id: sum(po.product.price * po.quantity for po in o.productorder_set.select_related('product'))
+        for o in orders
+    }
+
+    # 每張訂單允許的付款帳戶 (ShopPayment -> PaymentAccount)
+    allowed_payments = {}
+    allow_deposit_by_order = {}
+    for o in orders:
+        q = (ShopPayment.objects
+            .filter(shop=o.shop)
+            .select_related('payment_account', 'payment_account__payment'))
+        allowed_payments[o.id] = list(q)
+        allow_deposit_by_order[o.id] = bool(getattr(o.shop, 'allow_deposit', False))
+
     user_address = UserAddress.active.filter(user=request.user).first()
+    addresses = UserAddress.objects.filter(user=request.user)
     city_list = [c[0] for c in UserAddress.ADDRESS_MODE_CHOICES]
 
-    #計算每張訂單的總價
-    order_totals = {}
-    for order in orders:
-        total = 0
-        for item in order.productorder_set.select_related('product').all():
-            total += item.product.price * item.quantity
-        order_totals[order.id] = total
-
     if request.method == 'POST':
-        # address_id = request.POST.get('address_id')
-        # address = get_object_or_404(UserAddress, id=address_id, user=request.user)
-
-        # 使用者自由填的欄位
-        receiver_name = request.POST.get('receiver_name')
-        receiver_phone = request.POST.get('receiver_phone')
-        receiver_city = request.POST.get('city')
-        detail_address = request.POST.get('detail_address')
+        # 收件資料
+        receiver_name = request.POST.get('receiver_name', '').strip()
+        receiver_phone = request.POST.get('receiver_phone', '').strip()
+        receiver_city = request.POST.get('city', '').strip()
+        detail_address = request.POST.get('detail_address', '').strip()
 
         if not all([receiver_name, receiver_phone, receiver_city, detail_address]):
             messages.error(request, '請完整填寫寄送資訊')
             return redirect('checkout_address_payment')
 
-        address_text = f'{receiver_city} {detail_address}（收件人：{receiver_name}，電話：{receiver_phone}）'
+        # 依唯一約束建立/重用地址 (user, phone, city, address)
+        addr, created = UserAddress.objects.get_or_create(
+            user=request.user,
+            phone=receiver_phone,
+            city=receiver_city,
+            address=detail_address,
+            defaults={'name': receiver_name}
+        )
+        if not created and addr.name != receiver_name:
+            addr.name = receiver_name
+            addr.save(update_fields=['name'])
 
-        for order in orders:
-            form = OrderForm(request.POST, user=request.user, shop=order.shop)
-            if not form.is_valid():
-                messages.error(request, f'{order.shop.name} 的付款方式未選擇或錯誤')
-                continue
+        # 逐張訂單設定付款與地址
+        for o in orders:
+            payments = allowed_payments.get(o.id, [])
 
-        for order in orders:
-            form = OrderForm(request.POST, user=request.user, shop=order.shop)
-            if not form.is_valid():
-                messages.error(request, f'{order.shop.name} 的付款方式未選擇或錯誤')
-                continue
+            payment_account = None
+            # 預設：店家沒設定任何付款 → 取貨付款
+            payment_category = 'cash_on_delivery'
+            payment_mode = request.POST.get(f'payment_mode_{o.id}', 'full')  # 'full' / 'split'
 
-            payment_method = form.cleaned_data['payment_method']
-            payment_mode = form.cleaned_data.get('payment_mode')
+            if payments:
+                pa_id = request.POST.get(f'payment_account_{o.id}')
+                if pa_id:
+                    try:
+                        payment_account = PaymentAccount.objects.select_related('payment').get(id=pa_id)
+                        payment_name = payment_account.payment.name  # e.g. '取貨付款'、'匯款'
+                        payment_category = PAYMENT_NAME_TO_CHOICE.get(payment_name, 'cash_on_delivery')
+                    except PaymentAccount.DoesNotExist:
+                        payment_category = 'cash_on_delivery'
 
-            if payment_method == 'cash_on_delivery':
-                pay_state_id = 1 # 取貨付款
+            # 取貨付款 → 強制一次付清
+            if payment_category == 'cash_on_delivery':
+                pay_state_id = 1
                 payment_mode = 'full'
             else:
-                pay_state_id = 2 if payment_mode == 'deposit' else 8
+                allow_deposit = bool(getattr(o.shop, 'allow_deposit', False))
+                if not allow_deposit:
+                    payment_mode = 'full'
+                pay_state_id = 2 if payment_mode == 'split' else 8
 
-            order.address = address_text
-            # order.address = address
-            order.payment_category = payment_method
-            order.payment_mode = payment_mode
-            order.pay_state_id = pay_state_id
-            order.save()
+            # 寫入訂單
+            o.address = addr
+            o.payment_category = payment_category      # 必須是 choices 的值
+            o.payment_mode = payment_mode              # 'full' / 'split'
+            o.pay_state_id = pay_state_id
+            o.order_state_id = 2
+            o.save()
 
-            messages.success(request, f'{order.shop.name} 訂單付款資訊已設定完成')
+            messages.success(request, f'{o.shop.name} 訂單付款資訊已設定完成')
 
-        del request.session['pending_order_ids']
-        # return redirect('order_list')
-        
-        # 如果全部訂單都來自多帶商店（搶購制）
-        if all(order.shop.purchase_priority_id != 1 for order in orders):
-            return render(request, 'checkout/MoreComp.html')  # 多帶完成頁面
+        request.session.pop('pending_order_ids', None)
+
+        # 完成頁：全是多帶店 → MoreComp，否則一般
+        if all(o.shop.purchase_priority_id != 1 for o in orders):
+            return render(request, 'checkout/MoreComp.html')
         else:
-            return render(request, 'checkout/complete.html')  # 一般完成頁面
+            return render(request, 'checkout/complete.html')
 
     return render(request, 'checkout/step2.html', {
         'orders': orders,
-        'form_by_order': form_by_order,
-        'addresses': addresses,
         'order_totals': order_totals,
+        'allowed_payments': allowed_payments,
+        'allow_deposit_by_order': allow_deposit_by_order,
+        'addresses': addresses,
         'user_address': user_address,
         'city_list': city_list,
     })
@@ -434,55 +335,55 @@ def checkout_step2(request):
 # -------------------------
 @login_required(login_url='login')
 @order_buyer_required
-def choose_payment_method(order, request=None):
+def choose_payment_method(request, order):
     if order.order_state_id != 1:
         messages.error(request, '訂單狀態錯誤，無法選擇付款方式')
         return redirect('buyer_order_detail', order_id=order.id)
-    
-    shop = order.shop
-    shop_payment_links = ShopPayment.objects.filter(shop=shop).select_related('payment_account')
 
-    available_payment_methods = []
-    remittance_accounts = []
+    links = (ShopPayment.objects
+            .filter(shop=order.shop)
+            .select_related('payment_account', 'payment_account__payment'))
 
-    if shop.transfer:
-        remittance_accounts = shop_payment_links.exclude(payment_account__id=1)
-        if remittance_accounts.exists():
-            available_payment_methods.append('remittance')
+    # 分群：銀行 vs 取貨付款（若你已有 Payment.kind/code，改用語義欄位判斷）
+    remittance_qs = links.exclude(payment_account__payment__name__in=COD_NAMES)
+    has_cod = links.filter(payment_account__payment__name__in=COD_NAMES).exists()
 
-        if shop_payment_links.filter(payment_account__id=1).exists():
-            available_payment_methods.append('cash_on_delivery')
-    else:
-        available_payment_methods.append('cash_on_delivery')
+    # 動態決定表單能選的付款方式
+    available_methods = []
+    if has_cod:
+        available_methods.append(('cod', '取貨付款'))
+    if remittance_qs.exists():
+        available_methods.append(('bank', '銀行匯款'))
 
-    if not available_payment_methods:
+    if not available_methods:
         messages.error(request, '此商店未設定任何可用付款方式')
         return redirect('buyer_order_detail', order_id=order.id)
 
     if request.method == 'POST':
-        selected_method = request.POST.get('payment_method')
+        form = ChoosePaymentForm(request.POST, shop=order.shop, remittance_qs=remittance_qs)
+        # 把可用選項塞回去，避免前端竄改
+        form.fields['payment_method'].choices = available_methods
 
-        if selected_method not in available_payment_methods:
-            messages.error(request, '付款方式無效')
-            return redirect('order_payment_choice', order_id=order.id)
+        if form.is_valid():
+            method = form.cleaned_data['payment_method']
+            order.payment_category = method
+            order.order_state_id = 2
+            order.save()
 
-        order.payment_category = selected_method
+            messages.success(request, '付款方式已選擇')
+            return redirect('buyer_order_detail', order_id=order.id)
+        else:
+            messages.error(request, '表單驗證失敗，請重新確認')
+    else:
+        form = ChoosePaymentForm(shop=order.shop, remittance_qs=remittance_qs)
+        form.fields['payment_method'].choices = available_methods
 
-        if selected_method == 'remittance':
-            try:
-                selected_account_id = int(request.POST.get('payment_account_id'))
-            except (TypeError, ValueError, ShopPayment.DoesNotExist):
-                messages.error(request, '請選擇有效的匯款帳戶')
-                return redirect('order_payment_choice', order_id=order.id)
-
-        order.order_state_id = 2
-        order.save()
-
-        messages.success(request, '付款方式已選擇')
-        return redirect('buyer_order_detail', order_id=order.id)
-
-    return render(request, 'payment_choice.html', {'available_payment_methods': available_payment_methods,
-                                                'remittance_accounts': remittance_accounts,})
+    return render(request, 'payment_choice.html', {
+        'order': order,
+        'form': form,
+        'has_cod': has_cod,
+        'remittance_qs': remittance_qs,  # 若想在前端自訂渲染用得到
+    })
 
 # -------------------------
 # 買家上傳付款憑證
@@ -490,25 +391,40 @@ def choose_payment_method(order, request=None):
 @login_required(login_url='login')
 @order_buyer_required
 def upload_payment_proof(request, order):
-    if order.payment_category != 'remittance':
+    # 只允許「銀行匯款」的訂單上傳憑證
+    if order.payment_category != 'bank':
         messages.error(request, '此訂單不需匯款，無法上傳憑證')
         return redirect('buyer_order_detail', order_id=order.id)
 
-    if order.has_pending_payment_proof:
+    # 已有待審憑證就禁止重複上傳
+    if getattr(order, 'has_pending_payment_proof', False):
         messages.error(request, '您已上傳付款憑證，請等待賣家確認或退回後再試')
         return redirect('buyer_order_detail', order_id=order.id)
 
-    remit_accounts = ShopPayment.objects.filter(shop=order.shop).exclude(payment_account__id=1)
+    # 只取本店的「銀行」帳戶（名稱不在 COD_NAMES 的都視為銀行）
+    remit_accounts = (
+        ShopPayment.objects
+        .filter(shop=order.shop)
+        .exclude(payment_account__payment__name__in=COD_NAMES)
+        .select_related('payment_account', 'payment_account__payment')
+    )
 
     if request.method == 'POST':
         form = OrderPaymentForm(request.POST, request.FILES)
-        account_id = request.POST.get('payment_account_id')
 
-        if not account_id:
+        account_raw = request.POST.get('payment_account_id')
+        if not account_raw:
             messages.error(request, '請選擇匯款帳戶')
             return redirect('buyer_order_detail', order_id=order.id)
 
         try:
+            account_id = int(account_raw)
+        except (TypeError, ValueError):
+            messages.error(request, '匯款帳戶無效')
+            return redirect('buyer_order_detail', order_id=order.id)
+
+        try:
+            # 僅允許本店、且屬於「銀行」清單中的帳戶
             shop_payment = remit_accounts.get(id=account_id)
         except ShopPayment.DoesNotExist:
             messages.error(request, '匯款帳戶無效')
@@ -522,6 +438,9 @@ def upload_payment_proof(request, order):
             payment_record.seller_state = 'wait_confirmed'
             payment_record.save()
 
+            order.order_state_id = 2
+            order.save()
+
             messages.success(request, '匯款資訊已上傳，等待賣家確認')
             return redirect('buyer_order_detail', order_id=order.id)
         else:
@@ -529,6 +448,8 @@ def upload_payment_proof(request, order):
     else:
         form = OrderPaymentForm()
 
-    return render(request, 'upload_payment.html', {'remit_accounts':remit_accounts,
-                                                    'form': form,
-                                                    'order': order})
+    return render(request, 'upload_payment.html', {
+        'remit_accounts': remit_accounts,
+        'form': form,
+        'order': order,
+    })

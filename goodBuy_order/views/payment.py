@@ -3,9 +3,11 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.db.models import Sum, OuterRef, Subquery
 from django.shortcuts import redirect, render
+from django.db import transaction
 
 from ..forms import SecondSupplementForm
 from utils import *
+from ..constants import *
 # -------------------------
 # 查看付款憑證 - 單筆
 # -------------------------
@@ -84,67 +86,159 @@ def list_related_payments(request):
     return render(request, 'payment_list_all.html', {'payments': payments,
                                                     'confirmed_total': confirmed_total,
                                                     'waiting_total': waiting_total})
+
 # -------------------------
 # 賣家確認/拒絕付款憑證
+"""
+    依目前訂單 pay_state_id 決定「確認收款」後要推進到哪個狀態：
+        - 8(待全額匯款)   → 9(已全額匯款) 並把訂單推到 4(待出貨)
+        - 2(待支付定金)   → 3(已支付定金)
+        - 4(待支付尾款)   → 5(已支付尾款)
+        - 6(待支付額外費用)→ 7(已支付所有費用) 並把訂單推到 4(待出貨)
+
+    退回憑證：不改 pay_state_id，只把憑證標成 returned，並寫 remark。
+"""
 # -------------------------
 @require_POST
 @order_payment_owner_required
 def audit_payment(request, payment):
     action = request.POST.get('action')
 
-    if payment.seller_state != 'wait confirmed':
+    if payment.seller_state != 'wait_confirmed':
         messages.warning(request, '這筆付款已處理過')
         return redirect('view_payment_proofs', order_id=payment.order.id)
 
-    if action == 'confirm':
-        payment.seller_state = 'confirmed'
-        payment.remark = request.POST.get('remark', '') or payment.remark
-        messages.success(request, '已確認收款')
+    order = payment.order
+    cur = order.pay_state_id
 
-    elif action == 'reject':
-        payment.seller_state = 'returned'
-        payment.remark = request.POST.get('remark', '') or payment.remark
-        messages.success(request, '已退回憑證')
+    # 這些狀態不該再審憑證（理論上流程不會到這）
+    if cur in (PAY_CASH_ON_DELIVERY, PAY_WAIT_SELECT, PAY_CANCELLED, PAY_ALL_PAID, PAY_FULL_PAID):
+        messages.error(request, '目前付款狀態不需處理')
+        return redirect('view_payment_proofs', order_id=order.id)
 
-    else:
+    if action not in ('confirm', 'reject'):
         messages.error(request, '無效的操作')
+        return redirect('view_payment_proofs', order_id=order.id)
 
-    payment.save()
-    return redirect('view_payment_proofs', order_id=payment.order.id)
+    with transaction.atomic():
+        # 更新賣家備註
+        new_remark = request.POST.get('remark', '')
+        if new_remark:
+            payment.remark = new_remark
+
+        if action == 'confirm':
+            payment.seller_state = 'confirmed'
+
+            # 依當前 pay_state 決定下一步
+            if cur == PAY_WAIT_FULL:
+                # 一次付清路徑：完成
+                order.pay_state_id = PAY_FULL_PAID
+                order.order_state_id = ORDER_WAIT_SHIP
+
+            elif cur == PAY_WAIT_DEPOSIT:
+                # 分期：定金確認
+                order.pay_state_id = PAY_DEPOSITED
+
+            elif cur == PAY_WAIT_FINAL:
+                # 分期：尾款確認
+                order.pay_state_id = PAY_FINAL_PAID
+
+            elif cur == PAY_WAIT_EXTRA:
+                # 分期：額外費用確認 → 全部完成
+                order.pay_state_id = PAY_ALL_PAID
+                order.order_state_id = ORDER_WAIT_SHIP
+
+            else:
+                # 其他狀態理論上不會到；保守處理
+                messages.warning(request, f'目前付款狀態({cur})未定義確認邏輯，已僅標記憑證為已確認')
+                payment.save()
+                return redirect('view_payment_proofs', order_id=order.id)
+
+            # 儲存訂單與憑證
+            order.save()
+            payment.save()
+            messages.success(request, '已確認收款')
+
+        else:  # action == 'reject'
+            payment.seller_state = 'returned'
+            payment.save()
+            messages.success(request, '已退回憑證')
+
+    return redirect('view_payment_proofs', order_id=order.id)
+
 # -------------------------
 # 賣家通知付款
+"""
+    付款提醒狀態機（只處理 pay_state_id，必要時推進 order_state_id）
+
+    依據你的對照表：
+        2 待支付定金      → 可通知（不改狀態，仍 2）
+        3 已支付定金      → 轉 4：待支付尾款（提醒尾款）
+        4 待支付尾款      → 已在等待尾款（可重發提醒，但狀態仍 4）
+        5 已支付尾款      → 若 second_supplement>0 → 6 待支付額外費用
+                            否則 → 7 已支付所有費用（並把訂單推到待出貨）
+        6 待支付額外費用  → 可重發提醒（狀態仍 6）
+        8 待全額匯款      → 可通知（不改狀態，仍 8）
+        7/9/10/11         → 不允許再通知
+        1                  → COD 不需匯款，亦不通知
+"""
 # -------------------------
 def notify_buyer_to_pay(order, request=None):
-    current = order.pay_state_id
+    cur = order.pay_state_id
 
-    if current in [1, 2, 4, 6, 7, 9, 10]:
+    if cur in (PAY_CASH_ON_DELIVERY, PAY_ALL_PAID, PAY_FULL_PAID, PAY_WAIT_SELECT, PAY_CANCELLED):
         if request:
             messages.error(request, '目前付款狀態不允許通知付款')
         return False
 
-    elif current == 3:
-        order.pay_state_id = 4
+    if cur == PAY_WAIT_DEPOSIT:
         if request:
-            messages.success(request, '已通知買家支付尾款')
+            messages.success(request, '已通知買家支付「訂金」')
+        order.save()
+        return True
 
-    elif current == 5 or current == 8:
+    if cur == PAY_DEPOSITED:
+        order.pay_state_id = PAY_WAIT_FINAL
+        if request:
+            messages.success(request, '已通知買家支付「尾款」')
+        order.save()
+        return True
+
+    if cur == PAY_WAIT_FINAL:
+        if request:
+            messages.success(request, '已再次通知買家支付「尾款」')
+        order.save()
+        return True
+
+    if cur == PAY_FINAL_PAID:
         if order.second_supplement and order.second_supplement > 0:
-            order.pay_state_id = 6
+            order.pay_state_id = PAY_WAIT_EXTRA
             if request:
-                messages.success(request, '已通知買家支付額外費用')
+                messages.success(request, '已通知買家支付「額外費用」')
         else:
-            order.pay_state_id = 7
+            order.pay_state_id = PAY_ALL_PAID      # 7
+            order.order_state_id = ORDER_WAIT_SHIP # 4
             if request:
                 messages.success(request, '已確認買家已支付所有費用')
-                order.order_state_id = 4
+        order.save()
+        return True
 
-    elif current == 8:
-        order.pay_state_id = 9
+    if cur == PAY_WAIT_EXTRA:
         if request:
-            messages.success(request, '已確認買家完成全額付款')
-            
-    order.save()
-    return True
+            messages.success(request, '已再次通知買家支付「額外費用」')
+        order.save()
+        return True
+
+    if cur == PAY_WAIT_FULL:
+        if request:
+            messages.success(request, '已通知買家完成「全額匯款」')
+        order.save()
+        return True
+
+    if request:
+        messages.error(request, '目前付款狀態無對應的通知流程')
+    return False
+
 # -------------------------
 # 賣家設定二次補款
 # -------------------------

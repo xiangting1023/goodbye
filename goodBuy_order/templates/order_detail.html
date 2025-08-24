@@ -7,7 +7,8 @@
 </head>
 <body>
     <h1>訂單詳情 #{{ order.id }}</h1>
-    <p>狀態：{{ order.order_state.name }}</p>
+    <p>訂單狀態：{{ order.order_state.name }}</p>
+    <p>付款狀態：{{ order.pay_state.name }}</p>
     <p>總金額：{{ order.total }}</p>
     
     <h2>商品清單</h2>
