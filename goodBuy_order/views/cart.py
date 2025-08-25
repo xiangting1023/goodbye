@@ -12,6 +12,7 @@ from .rush_view import maybe_extend_rush
 from ..models import *
 from ..forms import *
 from ..utils import *
+from .update_order_stste import restore_order_stock
 # -------------------------
 # 購物車查看
 # -------------------------
@@ -166,3 +167,29 @@ def update_cart_quantity(request, cart_item):
     messages.success(request, f'{cart_item.product.name} 數量已更新為 {cart_item.quantity}')
     referer = request.META.get('HTTP_REFERER', '/')
     return redirect(referer)
+
+# -------------------------
+# 返回結帳步驟 1
+# -------------------------
+@login_required(login_url='login')
+def checkout_back_to_step1(request):
+    order_ids = request.session.get('pending_order_ids')
+    if not order_ids:
+        messages.info(request, '沒有可還原的訂單')
+        return redirect('checkout')
+
+    orders = Order.objects.filter(id__in=order_ids, user=request.user, pay_state_id=10, order_state_id=1)
+
+    # 把商品加回購物車、還原庫存、刪除訂單
+    for o in orders:
+        for po in ProductOrder.objects.filter(order=o).select_related('product'):
+            if po.product:
+                # 放回購物車
+                Cart.objects.create(user=request.user, product=po.product, quantity=po.quantity)
+        restore_order_stock(o)
+        o.delete()
+
+    # 清掉 session
+    request.session.pop('pending_order_ids', None)
+    messages.success(request, '已返回上一步，商品與庫存已還原')
+    return redirect('checkout')

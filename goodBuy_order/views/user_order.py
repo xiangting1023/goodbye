@@ -188,13 +188,20 @@ def checkout_step1(request):
                     return redirect('checkout_address_payment')
 
                 # 走到這裡代表這次都是「多帶」
-                return redirect('cart')
+                return render(request, 'checkout/MoreComp.html')
 
         except Exception as e:
             print(e)
             messages.error(request, f'建立訂單失敗：{e}')
             return redirect('cart')
 
+    # 確認商店類型
+    has_normal = any(shop.purchase_priority_id == 1 for shop in shop_groups.keys())
+    has_rush   = any(shop.purchase_priority_id != 1 for shop in shop_groups.keys())
+    if has_normal and has_rush:
+        messages.error(request, '一般商店與多帶商店不可同時結帳，請分開勾選送出')
+        return redirect('cart')
+    
     # 先計算價格
     totals_by_shop = {}
 
