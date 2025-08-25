@@ -188,7 +188,7 @@ def checkout_step1(request):
                     return redirect('checkout_address_payment')
 
                 # 走到這裡代表這次都是「多帶」
-                return render(request, 'checkout/MoreComp.html')
+                return render(request, 'checkout/MoreComp.html', {'shop': shop})
 
         except Exception as e:
             print(e)
