@@ -83,7 +83,7 @@
                                         {% with want.wanttag_set.all as want_tags %}
                                             {% if want_tags %}
                                                 {% for rel in want_tags %}
-                                                    <a href="{% url 'tagBySearch' %}?keyWord={{ rel.tag.name }}"
+                                                <a href="{% url 'tagById_one' tag_id=rel.tag.id %}"
                                                         class="badge bg-light text-dark text-decoration-none">
                                                         #{{ rel.tag.name }}
                                                     </a>
