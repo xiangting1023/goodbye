@@ -13,25 +13,21 @@
   <div class="header">{% include 'base.html' %}</div>
 
   <div class="profile-header">
-    {% if profile_user.profile.avatar %}
-      <img class="profile-avatar" src="{{ profile_user.profile.avatar.url }}" alt="頭像">
-    {% else %}
-      <img class="profile-avatar" src="{% static 'img/Defuser.png' %}" alt="預設頭像">
-    {% endif %}
+  {% if profile_user.profile.avatar %}
+    <img class="profile-avatar" src="{{ profile_user.profile.avatar.url }}" alt="頭像">
+  {% else %}
+    <img class="profile-avatar" src="{% static 'img/Defuser.png' %}" alt="預設頭像">
+  {% endif %}
 
-    <div class="profile-basic">
-      <h2>{{ profile_user.profile.nickname|default:profile_user.username }}</h2>
+  <h2 class="profile-name">{{ profile_user.profile.nickname|default:profile_user.username }}</h2>
 
-      <div class="profile-stats">
-        <span><i class="fa-regular fa-calendar-plus"></i> 加入時間：<b class="value">{{ profile_user.date_joined|date:"Y/m/d" }}</b></span>
-        <span><i class="fa-regular fa-thumbs-up"></i> 信譽度：
-          <b class="value">{% if average_rank %}{{ average_rank }}{% else %}無評價{% endif %}</b>
-        </span>
-        <span><i class="fa-regular fa-user"></i> 粉絲數：<b class="value">{{ fans_count|default:0 }}</b></span>
-        <span><i class="fa-solid fa-store"></i> 賣場：<b class="value">{{ shop_count|default:0 }}</b></span>
-      </div>
-    </div>
+  <div class="profile-stats">
+    <span><i class="fa-regular fa-calendar-plus"></i> 加入時間：<b class="value">{{ profile_user.date_joined|date:"Y/m/d" }}</b></span>
+    <span><i class="fa-regular fa-thumbs-up"></i> 信譽度：<b class="value">{% if average_rank %}{{ average_rank }}{% else %}無評價{% endif %}</b></span>
+    <span><i class="fa-regular fa-user"></i> 粉絲數：<b class="value">{{ fans_count|default:0 }}</b></span>
+    <span><i class="fa-solid fa-store"></i> 賣場：<b class="value">{{ shop_count|default:0 }}</b></span>
   </div>
+</div>
 
   <div class="profile-container">
     {% if block_reason %}
