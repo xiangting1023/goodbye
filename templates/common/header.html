@@ -29,7 +29,9 @@
 
 <div class="page-back">
   {% if request.resolver_match.url_name != 'home' %}
-  <a href="{% url 'home' %}" class="back-home">←</a>
+  <a href="{% url 'home' %}" class="back-home">
+    <img src="/static/img/arrow-circle-left.png/" class="before_d" alt="上一步" >
+  </a>
 {% endif %}
 </div>
 
