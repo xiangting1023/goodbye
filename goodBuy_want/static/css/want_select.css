@@ -42,14 +42,47 @@ body {
 /* 被選卡片給綠框 */
 .card-selectable { cursor: pointer; }
 .card-selectable.selected .post-card { outline: 3px solid #16a34a; }
-.picked-tip { display:none; color:#16a34a; font-size:12px; margin-top:6px; }
+.picked-tip { display:none; color:#16a34a; font-size:20px; margin-top:6px; }
 .card-selectable.selected .picked-tip { display:inline-block; }
 
 .btn-primary {
-    background-color: #F4A7B9 !important;
+    background-color: #f59bb0 !important;
     color: white !important;
     padding: 10px 30px; 
     border-radius: 10px;
     border: none;
     font-weight: bold;
+}
+
+/* 統一兩個按鈕大小與文字 */
+.button-group .btn {
+    min-width: 160px;       /* 兩個按鈕同寬 */
+    padding: 12px 30px;     /* 內距統一 */
+    font-size: 18px;        /* 文字放大 */
+    font-weight: bold;
+    border-radius: 10px;    /* 保持一致圓角 */
+}
+
+/* 返回按鈕樣式保持原本的輪廓風格 */
+.button-group .btn-outline-secondary {
+    border: 2px solid #6c757d;
+    color: #6c757d;
+    background-color: white;
+}
+
+/* 確認按鈕懸停變色 */
+.button-group .btn-primary:hover {
+    background-color: #d92972 !important; 
+    color: white !important;
+}
+
+/* 返回按鈕懸停變色 */
+.btn-outline-secondary:hover {
+    background-color: #e0e0e0 !important;
+    color: #495057 !important;          
+    border-color: #495057 !important;     
+}
+
+h4.fw-bold {
+    font-size: 2rem !important; /* 2rem = 32px，可再調整 */
 }

@@ -10,3 +10,37 @@
   text-decoration: none;
   color: inherit;
 }
+
+
+.want-info-section {
+    position: relative; /* 給定位基準 */
+    padding-right: 410px; 
+
+}
+
+.fab-share-text {
+    position: absolute;
+    right: 0;
+    top: calc(85% - 85px); /* 距離文字最後一行 85px */
+
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    background-color: #2B5F75;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+    text-decoration: none;
+    line-height: 1.4;
+}
+
+/* hover 效果 */
+.fab-share-text:hover,
+.fab-share-text:focus {
+    background-color: #A3C6E0;
+    transform: scale(1.05);
+}

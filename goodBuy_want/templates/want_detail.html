@@ -102,16 +102,20 @@
                                         {{ want.post_text|linebreaksbr }}
                                     </div>
                                 </div>
+                            <!-- 分享售物帖按鈕 -->
+                            {% if request.user.is_authenticated and request.user != want.user %}
+                            <div class="share-btn-wrapper">
+                            <a href="{% url 'choose_shop_and_reply' want_id=want.id %}"class="fab-share-text" aria-label="立即分享！">立即分享！
+                            </a>
+                            </div>
+                            {% endif %}
+
                             </div>
                         </div>
+
+                    
+                    
                 </div>
-                
-                <!-- 分享售物帖按鈕 -->
-                {% if request.user.is_authenticated and request.user != want.user %}
-                    <a href="{% url 'choose_shop_and_reply' want_id=want.id %}" class="btn btn-outline-primary">
-                        <img src="{% static 'img/send.png' %}" class="me-1" style="width:18px;height:18px;"> 分享售物帖
-                    </a>
-                {% endif %}
 
             </div>
         </div>

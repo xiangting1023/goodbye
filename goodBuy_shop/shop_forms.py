@@ -140,7 +140,10 @@ class ShopForm(forms.ModelForm):
 
         # 你原本的時間轉換
         shop.start_time = timeFormatChange_now(shop.start_time)
-        shop.end_time = timeFormatChange_longtime(shop.end_time)
+        if shop.end_time:   # 只有在使用者有輸入結束時間時才做轉換
+            shop.end_time = timeFormatChange_longtime(shop.end_time)
+        else:
+            shop.end_time = None   # 沒輸入就存 NULL，代表永久商店
 
         if self.user:
             shop.owner = self.user
