@@ -47,7 +47,7 @@ def homePage(request):
         for want in wants:
             want.post_type = 'want'
 
-        # 計算商品總價
+        # 判斷售物/收物 合併更新
         items = sorted(
             chain(shops, wants), 
             key=attrgetter('update'), 
