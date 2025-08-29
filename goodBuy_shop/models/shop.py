@@ -17,7 +17,7 @@ class Shop(models.Model):
     owner = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     introduce = models.TextField(blank=True, null=True)
     start_time = models.DateTimeField()
-    end_time = models.DateTimeField()
+    end_time = models.DateTimeField(null=True, blank=True)
     shop_state = models.ForeignKey(ShopState, on_delete=models.CASCADE)
     permission = models.ForeignKey(Permission, on_delete=models.CASCADE)
     purchase_priority = models.ForeignKey(PurchasePriority, on_delete=models.CASCADE)
