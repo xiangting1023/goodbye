@@ -135,10 +135,18 @@ def delete_multiple_cart_items(request):
 @login_required(login_url='login')
 @cart_exists_required
 def update_cart_quantity(request, cart_item):
-    if cart_item.product.shop.is_end:
-        messages.error(request, "該商店已截止，無法修改商品數量")
-        return redirect('cart')
+    #原本的邏輯 但沒有is_end這個功能
+    # if cart_item.product.shop.end_time:
+    #     messages.error(request, "該商店已截止，無法修改商品數量")
+    #     return redirect('cart')
     
+    shop = cart_item.product.shop
+    # 以 end_time 判斷是否截止
+    if shop and getattr(shop, "end_time", None):
+        if shop.end_time <= timezone.now():
+            messages.error(request, "該商店已截止，無法修改商品數量")
+            return redirect('cart')
+        
     try:
         new_qty = int(request.POST.get('quantity', 1))
     except ValueError:
