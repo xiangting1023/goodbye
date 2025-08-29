@@ -6,5 +6,5 @@ urlpatterns = [
     path('add/<int:product_id>/', add_to_cart, name='add_to_cart'),
     path('delete/<int:cart_item>/', delete_cart_item, name='delete_cart_item'),
     path('delete_selected/', delete_multiple_cart_items, name='delete_multiple_cart_items'),
-    path('update_quantity/<int:cart_item_id>/', update_cart_quantity, name='update_cart_quantity'),
+    path('update_quantity/<int:cart_item>/', update_cart_quantity, name='update_cart_quantity'),
 ]

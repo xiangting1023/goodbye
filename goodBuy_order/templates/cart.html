@@ -53,7 +53,9 @@
                 <div class="col-3">{{ entry.product.name }}</div>
                 <div class="col-2 text-danger fw-bold">{{ entry.product.price }}$</div>
                 <div class="col-2">
-                  <input type="number" class="form-control form-control-sm quantity-input" value="{{ entry.cart.quantity }}" min="1" max="{{ entry.remaining_quantity }}">
+                  <input type="number" class="form-control form-control-sm quantity-input" 
+                  value="{{ entry.cart.quantity }}" min="1" max="{{ entry.remaining_quantity }}" data-cart-id="{{ entry.cart.id }}"
+                  data-update-url="{% url 'update_cart_quantity' entry.cart.id %}">
                 </div>
                 <div class="col-2">
                   <form method="POST" action="{% url 'delete_cart_item' entry.cart.id %}" class="d-inline">

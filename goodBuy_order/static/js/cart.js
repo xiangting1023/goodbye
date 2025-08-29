@@ -43,14 +43,77 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 
-  // 數量變更時自動更新金額
-  document.querySelectorAll(".quantity-input").forEach((input) => {
-    input.addEventListener("change", function () {
-      const groupElement = input.closest(".cart-group");
-      updateGroupTotal(groupElement); //更新總計
-      updateCartCount(); // 更新購物車商品數量顯示
-    });
+// 數量變更時自動更新金額
+// 先做前端上限檢查，再送到後端保存
+// 工具：抓 CSRF
+function getCsrf() {
+  const el = document.querySelector('input[name="csrfmiddlewaretoken"]');
+  return el ? el.value : '';
+}
+
+// 綁定所有數量欄
+const qtyInputs = document.querySelectorAll(".quantity-input");
+console.log("[cart] quantity inputs =", qtyInputs.length);
+
+qtyInputs.forEach((input) => {
+  // 讓使用者按上下鍵就即時更新小計
+  input.addEventListener("input", function () {
+    const group = input.closest(".cart-group");
+    // 本地 min/max 防呆
+    const max = parseInt(input.getAttribute("max") || "9999", 10);
+    const min = parseInt(input.getAttribute("min") || "1", 10);
+    let v = parseInt(input.value || "0", 10);
+    if (isNaN(v) || v < min) v = min;
+    if (v > max) {
+      input.value = String(max);
+      alert(`這項商品已沒有更多數量可買，最多 ${max} 件。`);
+    }
+    updateGroupTotal(group);
+    updateCartCount();
   });
+
+  input.addEventListener("change", async function () {
+    const url = input.dataset.updateUrl;
+    const csrf = getCsrf();
+    const group = input.closest(".cart-group");
+    const qty = parseInt(input.value || "0", 10);
+
+    console.log("[cart] change qty ->", { qty, url, hasCsrf: !!csrf });
+
+    if (!url) {
+      console.warn("[cart] 找不到 data-update-url，請確認 cart.html 是否有加上。");
+      return;
+    }
+    if (!csrf) {
+      console.warn("[cart] 找不到 CSRF token，請確認頁面內有 {% csrf_token %}。");
+      return;
+    }
+
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+          "X-CSRFToken": csrf,
+        },
+        body: new URLSearchParams({ quantity: String(qty) }).toString(),
+        redirect: "follow",
+      });
+
+      // 正常 Django 會 302 -> 200 刷 messages 顯示出來
+      if (res.ok) {
+        // 後端可能把超過庫存的數量壓回上限；重整後就能看到提示訊息
+        location.reload();
+      } else {
+        console.error("[cart] 後端回應非 2xx：", res.status);
+        alert("更新數量失敗，請稍後再試");
+      }
+    } catch (err) {
+      console.error("[cart] fetch error", err);
+      alert("更新數量時發生錯誤，請稍後再試。");
+    }
+  });
+});
 
   // 表單送出前只保留被勾選的 cart_ids
   const cartForm = document.getElementById("cart-form");
