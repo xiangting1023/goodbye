@@ -223,6 +223,7 @@ def checkout_step1(request):
 
 @login_required(login_url='login')
 def checkout_step2(request):
+    print(request.POST)
     order_ids = request.session.get('pending_order_ids')
     if not order_ids:
         messages.error(request, '找不到待處理的訂單')
@@ -276,6 +277,7 @@ def checkout_step2(request):
             address=detail_address,
             defaults={'name': receiver_name}
         )
+
         if not created and addr.name != receiver_name:
             addr.name = receiver_name
             addr.save(update_fields=['name'])
@@ -285,19 +287,25 @@ def checkout_step2(request):
             payments = allowed_payments.get(o.id, [])
 
             payment_account = None
-            # 預設：店家沒設定任何付款 → 取貨付款
-            payment_category = 'cash_on_delivery'
+            payment_category = 'cash_on_delivery'   # 預設 COD
             payment_mode = request.POST.get(f'payment_mode_{o.id}', 'full')  # 'full' / 'split'
 
-            if payments:
-                pa_id = request.POST.get(f'payment_account_{o.id}')
-                if pa_id:
-                    try:
-                        payment_account = PaymentAccount.objects.select_related('payment').get(id=pa_id)
-                        payment_name = payment_account.payment.name  # e.g. '取貨付款'、'匯款'
-                        payment_category = PAYMENT_NAME_TO_CHOICE.get(payment_name, 'cash_on_delivery')
-                    except PaymentAccount.DoesNotExist:
+            sp_id = request.POST.get(f'payment_account_{o.id}')
+            print(sp_id)
+            if sp_id:
+                sp = (ShopPayment.objects
+                        .select_related('payment_account__payment')
+                        .filter(payment_account__id=sp_id, shop=o.shop)
+                        .first())
+                if sp and sp.payment_account:
+                    pname = (getattr(sp.payment_account.payment, 'name', '') or '').strip()
+                    print(pname)
+                    if pname in COD_NAMES:
                         payment_category = 'cash_on_delivery'
+                    else:
+                        payment_category = 'remittance'
+                else:
+                    payment_category = 'cash_on_delivery'
 
             # 取貨付款 → 強制一次付清
             if payment_category == 'cash_on_delivery':
@@ -311,13 +319,13 @@ def checkout_step2(request):
 
             # 寫入訂單
             o.address = addr
-            o.payment_category = payment_category      # 必須是 choices 的值
+            o.payment_category = payment_category      # 'cash_on_delivery' or 'remittance'
             o.payment_mode = payment_mode              # 'full' / 'split'
             o.pay_state_id = pay_state_id
             o.order_state_id = 2
             o.save()
 
-            messages.success(request, f'{o.shop.name} 訂單付款資訊已設定完成')
+        messages.success(request, f'{o.shop.name} 訂單付款資訊已設定完成')
 
         request.session.pop('pending_order_ids', None)
 
