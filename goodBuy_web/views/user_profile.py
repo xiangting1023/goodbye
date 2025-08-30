@@ -1,5 +1,4 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.db.models import Avg
 from goodBuy_web.models import User
 from goodBuy_shop.models import Shop, ShopImg
 from goodBuy_shop.weighting import personalized_shop_recommendation
@@ -7,8 +6,8 @@ from goodBuy_shop.hot_rank import get_hot_shops
 from goodBuy_want.models import Want, WantImg
 from goodBuy_want.weighting import personalized_want_recommendation
 from goodBuy_want.hot_rank import get_hot_wants
-from goodBuy_order.models import Comment
-from django.db.models import Q
+from django.db.models import Case, When, IntegerField, F
+from django.utils import timezone
 from goodBuy_web.models import Blacklist
 from utils.decorators_shortcuts import user_exists_required
 
@@ -33,12 +32,33 @@ def view_profile(request, user):
             block_reason = "對方已封鎖您，無法查看主頁"
         else:
             block_reason = None
+
     if request.user.is_authenticated:
-        user_shops = personalized_shop_recommendation(request=request, owner=profile_user, limit=10)
-        user_wants = personalized_want_recommendation(request=request, owner=profile_user, limit=10)
+        if profile_user == request.user:
+            now = timezone.now()
+            user_shops = (
+                            Shop.objects
+                            .filter(owner=profile_user)
+                            .annotate(
+                                is_active=Case(
+                                    When(permission_id=1, start_time__lte=now, end_time__gte=now, then=1),
+                                    default=0, output_field=IntegerField()
+                                ),
+                            )
+                            .order_by(
+                                'permission_id',                 # 公開在前
+                                F('is_active').desc(),           # 進行中在前
+                                '-update',                       # 最近更新在前
+                                '-id',                           # 打破同分，確保穩定順序
+                            )
+                        )
+            user_wants = Want.objects.filter(user=profile_user).order_by('permission_id', '-update')
+        else:
+            user_shops = personalized_shop_recommendation(request=request, owner=profile_user)
+            user_wants = personalized_want_recommendation(request=request, owner=profile_user)
     else:
-        user_shops = get_hot_shops(request=request, owner=profile_user, limit=10)
-        user_wants = get_hot_wants(request=request, owner=profile_user, limit=10)
+        user_shops = get_hot_shops(request=request, owner=profile_user)
+        user_wants = get_hot_wants(request=request, owner=profile_user)
 
     # 幫每個 shop 補 cover_img、價格等欄位
     for shop in user_shops:
