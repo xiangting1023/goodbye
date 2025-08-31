@@ -1,74 +1,59 @@
 {% load static %}
+{% load get_item %}
 <!DOCTYPE html>
 <html>
 <head>
-<title>多帶優先分配表</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'css/priority_table.css' %}">
-{% include 'common/header.html' %}
+    <title>多帶優先分配表</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/priority_table.css' %}">
+    {% include 'common/header.html' %}
 </head>
 <body>
-<div class="container mt-4">
+    <div class="container mt-4">
 
-<h2 class="title-with-back title">
-<a href="{% url 'shop' shop.id %}" class="btn btn-outline-secondary me-3">&larr;</a>
-{{ shop.name }} - {{ priority_title }}
-</h2>
+    <!-- 商店標題 -->
+    <h2 class="title-with-back title">
+    <a href="{% url 'shop' shop.id %}" class="btn btn-outline-secondary me-3">&larr;</a>
+    {{ shop.name }} - {{ priority_title }}
+    </h2>
 
-<div class="main-content">
-
-{# 上方總表：只要名稱/總金額/總數量 #}
-<div class="priority-scroll mb-4">
-    <table class="table table-bordered text-center align-middle">
-    <thead>
-        <tr>
-        <th class="sticky-col">買家名稱</th>
-        <th class="{% if priority_mode == 'amount' %}highlight-pink{% else %}highlight-gray{% endif %}">總金額</th>
-        <th class="{% if priority_mode == 'quantity' %}highlight-pink{% else %}highlight-gray{% endif %}">總數量</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for b in buyers_summary %}
-        <tr>
-            <td class="sticky-col text-start ps-3">{{ b.username }}</td>
-            <td class="{% if priority_mode == 'amount' %}highlight-pink{% else %}highlight-gray{% endif %}">{{ b.total_amount }}</td>
-            <td class="{% if priority_mode == 'quantity' %}highlight-pink{% else %}highlight-gray{% endif %}">{{ b.total_qty }}</td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="3">目前沒有資料</td></tr>
-        {% endfor %}
-    </tbody>
-    </table>
-</div>
-
-{# 下方分配矩陣：欄=商品，列=最大庫存；格子放「使用者名稱」 #}
-<div class="priority-scroll">
-    <table class="table table-bordered text-center align-middle">
-    <thead>
-        <tr>
-        <th class="sticky-col">商品</th>
-        {% for h in headers %}
-            <th>{{ h.name }}</th>
-        {% endfor %}
-        </tr>
-    </thead>
-    <tbody>
-        {% for row in rows %}
-        <tr>
-            <td class="sticky-col text-start ps-3">第{{ forloop.counter }}個</td>
-            {% for cell in row %}
-            <td>{{ cell }}</td> {# 使用者名稱 / '' / '-' #}
-            {% endfor %}
-        </tr>
-        {% empty %}
-        <tr><td colspan="{{ headers|length|add:1 }}">目前沒有分配資料</td></tr>
-        {% endfor %}
-    </tbody>
-    </table>
-</div>
-
-</div>
-</div>
-<script src="{% static 'js/cover.js' %}"></script>
+        <div class="main-content">
+            <div class="table-responsive priority-wrapper">
+                <table class="table table-bordered text-center align-middle">
+                    <thead>
+                        <tr>
+                            <th>買家名稱</th>
+                            <th class="{% if priority_mode == 'amount' %}highlight-pink{% else %}highlight-gray{% endif %}">總金額</th>
+                            <th class="{% if priority_mode == 'quantity' %}highlight-pink{% else %}highlight-gray{% endif %}">總數量</th>
+                            {% for product in product_list %}
+                                <th>{{ product.name }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for buyer in buyers_summary %}
+                            <tr>
+                                <td>{{ buyer.username }}</td>
+                                <td class="{% if priority_mode == 'amount' %}highlight-pink{% else %}highlight-gray{% endif %}">{{ buyer.total_amount }}</td>
+                                <td class="{% if priority_mode == 'quantity' %}highlight-pink{% else %}highlight-gray{% endif %}">{{ buyer.total_qty }}</td>
+                                {% for product in product_list %}
+                                    <td>{{ buyer.product_quantities|get_item:product.id|default:0 }}</td>
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}               
+                        <!-- 若不足9筆，補空白列 -->
+                        {% for _ in "123456789"|slice:":9"|make_list %}
+                            {% if forloop.counter > buyers|length %}
+                                <tr>
+                                    <td colspan="{{ product_list|length|add:3 }}">-</td>
+                                </tr>
+                            {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    <div>
 </body>
+<script src="{% static 'js/cover.js' %}"></script>
 </html>
