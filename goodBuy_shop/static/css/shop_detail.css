@@ -283,6 +283,28 @@ h5 {
     margin-top: 0;
 }
 
+/* 加入購物車按鍵 */
+.btn-sm {
+    background-color: white;
+    color: #F4A7B9;
+    border: 2px solid #F4A7B9;
+    padding: 10px 30px;
+    border-radius: 10px;
+    font-weight: bold;
+    margin-right: 10px;
+    text-decoration: none;
+}
+
+.btn-sm:hover {
+    background-color: #F4A7B9;
+    color: white;
+    padding: 10px 30px;
+    border-radius: 10px;
+    border: none;
+    font-weight: bold;
+    text-decoration: none; /* 滑鼠懸停時的新背景色 */
+}
+
 .shopname {
     margin-top: 20px;
 }

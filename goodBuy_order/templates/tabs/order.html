@@ -25,6 +25,7 @@
             <!-- 中間數量 + 金額 -->
             <div class="d-flex align-items-center flex-grow-1 justify-content-center custom-gap">
               <p class="mb-0">{{ item.shop.name }}</p>
+              <p class="mb-0">{{ product_order.product.name }}</p>
               <p class="mb-0">數量：{{ product_order.quantity }}</p>
               <p class="money mb-0">{{ product_order.product.price|default:0 }} $</p>
             </div>
@@ -51,15 +52,15 @@
 
         <!-- 接單操作按鈕靠右 -->
         <div class="order-actions mt-3 d-flex justify-content-end">
-          <form method="post" action="{% url 'seller_action' item.id %}" class="me-2 d-inline">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="confirm_order">
-            <button type="submit" class="btn btn-success btn-sm">確認接單</button>
-          </form>
           <form method="post" action="{% url 'seller_action' item.id %}" class="d-inline">
             {% csrf_token %}
             <input type="hidden" name="action" value="reject_stock">
-            <button type="submit" class="btn btn-danger btn-sm">拒絕接單</button>
+            <button type="submit" class="btn btn-sm btn-reject">拒絕接單</button>
+          </form>
+          <form method="post" action="{% url 'seller_action' item.id %}" class="me-2 d-inline">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="confirm_order">
+             <button type="submit" class="btn btn-sm btn-accept">接單</button>
           </form>
         </div>
       </div>

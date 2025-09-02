@@ -35,6 +35,21 @@ def shop_collect_toggle(request, shop):
 def my_shops_collected(request):
     shop_ids = ShopCollect.objects.filter(user=request.user).values_list('shop_id', flat=True)
     shops = shopInformation_many(Shop.objects.filter(id__in=shop_ids).order_by('-update'))
+
+    # ========================
+    # 判斷截止日期
+    # ========================
+    now = timezone.now()
+    for shop in shops:
+        # 只對賣場卡片判斷
+        if getattr(shop, 'end_time', None):
+            # 若 end_time 有值且已過期
+            shop.is_ended = shop.end_time <= now
+        else:
+            # 沒有設定截止日（永久商店）→ 不算結束
+            shop.is_ended = False
+
+
     return render(request, 'shop_collects.html', locals())
 # -------------------------
 # 商店足跡

@@ -10,6 +10,7 @@ from django.db.models import Case, When, IntegerField, F
 from django.utils import timezone
 from goodBuy_web.models import Blacklist
 from utils.decorators_shortcuts import user_exists_required
+from django.utils import timezone
 
 @user_exists_required
 def view_profile(request, user):
@@ -59,6 +60,17 @@ def view_profile(request, user):
     else:
         user_shops = get_hot_shops(request=request, owner=profile_user)
         user_wants = get_hot_wants(request=request, owner=profile_user)
+
+    # ========================
+    # 判斷截止日期
+    # ========================
+    now = timezone.now()   
+    for shop in user_shops:
+        # 截止日期判斷 
+        if getattr(shop, 'end_time', None):
+            shop.is_ended = shop.end_time <= now
+        else:
+            shop.is_ended = False
 
     # 幫每個 shop 補 cover_img、價格等欄位
     for shop in user_shops:

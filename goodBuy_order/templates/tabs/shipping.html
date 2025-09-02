@@ -35,7 +35,7 @@
           <form method="post" action="{% url 'seller_action' item.order.id %}" class="d-inline">
             {% csrf_token %}
             <input type="hidden" name="action" value="ship_order">
-            <button type="submit" class="btn btn-primary btn-sm">出貨</button>
+            <button type="submit" class="btn btn-sm btn-accept">出貨</button>
           </form>
         </div>
       </div>

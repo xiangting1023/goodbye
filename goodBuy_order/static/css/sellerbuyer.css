@@ -131,3 +131,32 @@ body {
 .money {
     color: #ff002b;
 }
+
+/* 接單按鈕 */
+.btn-accept {
+    border: 2px solid #d63384;   /* 深粉色邊框 */
+    background-color: #f8d7e5;   /* 淡粉色背景 */
+    color: #81787b;              /* 深粉色字 */
+    border-radius: 10px;         /* 圓角 */
+    padding: 6px 14px;
+    transition: all 0.3s ease;
+}
+.btn-accept:hover {
+    background-color: #f1b6d2;   /* hover → 深一點的粉 */
+    color: #fff;                 /* hover → 白字 */
+}
+
+/* 拒絕接單按鈕 */
+.btn-reject {
+    border: 2px solid #d63384;   /* 深粉色邊框 */
+    background-color: #f8d7e5;   /* 淡粉色背景 */
+    color: #81787b;              /* 深粉色字 */
+    border-radius: 10px;         /* 圓角 */
+    padding: 6px 14px;
+    transition: all 0.3s ease;
+}
+
+.btn-reject:hover {
+    background-color: #f1b6d2;   /* hover → 深一點的粉 */
+    color: #fff;
+}

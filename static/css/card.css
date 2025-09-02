@@ -30,3 +30,46 @@
   font-weight: bold;
   font-size: large;
 }
+
+/* ================================= */
+        /* 如果該卡片已截止 */
+/* ================================= */
+
+/* 讓卡片能放絕對定位的遮罩 */
+.post-card {
+  position: relative;
+}
+
+/* 灰階處理（只要卡片有 is-ended 就把圖片轉灰階） */
+.post-card.is-ended .card-img-top {
+  filter: grayscale(100%);
+}
+
+/* 半透明黑色遮罩覆蓋整張卡 */
+.ended-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  border-radius: 8px;          /* 與卡片一致 */
+  z-index: 2;
+}
+
+/* 中央白字：已結束 */
+.ended-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 800;
+  font-size: 2rem;
+  letter-spacing: 2px;
+  z-index: 3;
+  pointer-events: none; 
+  margin-top: -110px; /* 負值讓它往上 */
+}
+
+/* ================================= */
+        /* END */
+/* ================================= */
