@@ -1,4 +1,5 @@
 from django.shortcuts import render , redirect
+from django.utils import timezone
 
 from goodBuy_shop.shop_utils import *
 from goodBuy_shop.weighting import *
@@ -22,6 +23,7 @@ def homePage(request):
     tag = request.GET.get('tag')  # 標籤名稱
     # 搜尋字串
     q = q_raw.strip() if q_raw else ''
+    now = timezone.now()
 
     # 若使用者有送出 q，但內容為空白就回首頁
     if q_raw is not None and q == '':
@@ -95,5 +97,15 @@ def homePage(request):
         key=attrgetter('update'), 
         reverse=True
     )
+
+    # 截止日期判斷 
+    for it in items:
+        # 只對賣場卡片判斷
+        if getattr(it, 'end_time', None):
+            # 若 end_time 有值且已過期
+            it.is_ended = it.end_time <= now
+        else:
+            # 沒有設定截止日（永久商店）→ 不算結束
+            it.is_ended = False
 
     return render(request, 'home.html', locals())
