@@ -98,7 +98,9 @@ def homePage(request):
         reverse=True
     )
 
-    # 截止日期判斷 
+    # ========================
+    # 判斷截止日期
+    # ========================
     for it in items:
         # 只對賣場卡片判斷
         if getattr(it, 'end_time', None):
