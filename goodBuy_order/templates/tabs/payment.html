@@ -1,27 +1,53 @@
-{% if pending_payments %}
-  <div class="payment-list">
-    {% for payment in pending_payments %}
-      <div class="payment-item p-3 mb-3 border rounded d-flex justify-content-between align-items-center">
-        <div>
-          <div>訂單編號：{{ payment.order.id }}</div>
-          <div>付款金額：{{ payment.amount }}$</div>
-          <div>付款方式：{{ payment.get_payment_method_display }}</div>
-          <div>買家：{{ payment.order.user.username }}</div>
-          <div>付款時間：{{ payment.pay_time }}</div>
+{% load static %}
+{% if payments %}
+  <div class="order-container">
+    {% for payment in payments %}
+      <div class="order-card p-3 mb-3 border rounded shadow-sm">
+
+        <!-- 左上角買家 -->
+        <div class="order-header mb-2">
+          <strong>買家：{{ payment.order.user.username }}</strong>
         </div>
-        <div>
-          <form method="post" action="{% url 'confirm_payment' payment.id %}" style="display:inline-block;">
+
+        <!-- 灰線 -->
+        <div class="order-divider mb-2"></div>
+
+        <!-- 圖片 + 金額 (左右排列，間距適中) -->
+        <div class="d-flex align-items-center mt-3 payment-row">
+          <!-- 付款圖片 -->
+          <div class="payment-proof me-3">
+            {% if payment.proof_img %}
+              <img src="{{ payment.proof_img.url }}" class="payment-img" alt="付款證明">
+            {% else %}
+              <div class="payment-img no-proof">
+                尚未上傳付款證明
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- 應付金額 -->
+          <div class="payment-amount text-end">
+            付款金額：<span class="money">{{ payment.amount }}$</span>
+          </div>
+        </div>
+
+        <!-- 操作按鈕 (僅在有付款圖片時顯示) -->
+        {% if payment.proof_img %}
+        <div class="order-actions mt-3 d-flex justify-content-end">
+          <form method="post" class="d-inline">
             {% csrf_token %}
-            <button type="submit" class="btn btn-success btn-sm">確認付款</button>
+            <button type="submit" class="btn btn-sm btn-accept">確認付款</button>
           </form>
-          <form method="post" action="{% url 'reject_payment' payment.id %}" style="display:inline-block; margin-left:10px;">
+          <form method="post" class="ms-2 d-inline">
             {% csrf_token %}
-            <button type="submit" class="btn btn-danger btn-sm">拒絕付款</button>
+            <button type="submit" class="btn btn-sm btn-reject">駁回</button>
           </form>
         </div>
+        {% endif %}
+
       </div>
     {% endfor %}
   </div>
 {% else %}
-  <p>目前沒有待確認的付款。</p>
+  <div class="alert alert-info">目前沒有待確認的付款。</div>
 {% endif %}

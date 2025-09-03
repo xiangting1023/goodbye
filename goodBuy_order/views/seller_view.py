@@ -26,10 +26,14 @@ def seller(request):
         order__shop__owner=request.user,
         order__order_state_id=5
     ).select_related('order', 'product', 'order__user')
+    pending_payments = OrderPayment.objects.filter(
+    order__shop__owner=request.user,
+    seller_state='wait_confirmed'
+    )
 
     return render(request, 'seller.html', {
         'pending_orders': pending_orders,
-        'pending_payments': pending_payments,
+        'payments': pending_payments,
         'shipping_orders': shipping_orders,
         'shipped_orders': shipped_orders,
     })
