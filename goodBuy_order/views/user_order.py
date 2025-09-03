@@ -351,54 +351,8 @@ def checkout_step2(request):
 @login_required(login_url='login')
 @order_buyer_required
 def choose_payment_method(request, order):
-    if order.order_state_id != 1:
-        messages.error(request, '訂單狀態錯誤，無法選擇付款方式')
-        return redirect('buyer_order_detail', order_id=order.id)
-
-    links = (ShopPayment.objects
-            .filter(shop=order.shop)
-            .select_related('payment_account', 'payment_account__payment'))
-
-    # 分群：銀行 vs 取貨付款（若你已有 Payment.kind/code，改用語義欄位判斷）
-    remittance_qs = links.exclude(payment_account__payment__name__in=COD_NAMES)
-    has_cod = links.filter(payment_account__payment__name__in=COD_NAMES).exists()
-
-    # 動態決定表單能選的付款方式
-    available_methods = []
-    if has_cod:
-        available_methods.append(('cod', '取貨付款'))
-    if remittance_qs.exists():
-        available_methods.append(('bank', '銀行匯款'))
-
-    if not available_methods:
-        messages.error(request, '此商店未設定任何可用付款方式')
-        return redirect('buyer_order_detail', order_id=order.id)
-
-    if request.method == 'POST':
-        form = ChoosePaymentForm(request.POST, shop=order.shop, remittance_qs=remittance_qs)
-        # 把可用選項塞回去，避免前端竄改
-        form.fields['payment_method'].choices = available_methods
-
-        if form.is_valid():
-            method = form.cleaned_data['payment_method']
-            order.payment_category = method
-            order.order_state_id = 2
-            order.save()
-
-            messages.success(request, '付款方式已選擇')
-            return redirect('buyer_order_detail', order_id=order.id)
-        else:
-            messages.error(request, '表單驗證失敗，請重新確認')
-    else:
-        form = ChoosePaymentForm(shop=order.shop, remittance_qs=remittance_qs)
-        form.fields['payment_method'].choices = available_methods
-
-    return render(request, 'payment_choice.html', {
-        'order': order,
-        'form': form,
-        'has_cod': has_cod,
-        'remittance_qs': remittance_qs,  # 若想在前端自訂渲染用得到
-    })
+    request.session['pending_order_ids'] = [order.id]
+    return redirect('checkout_address_payment')
 
 # -------------------------
 # 買家上傳付款憑證

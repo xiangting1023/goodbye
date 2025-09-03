@@ -80,22 +80,22 @@ def order_list(request, role='buyer'):
     }
 
     if role == 'buyer':
-        orders_choose_payment = orders.filter(order_state_id=1)  # 待選付款
+        orders_choose_payment = orders.filter(order_state_id__in=[1, 3])  # 待選付款+待付款（上傳匯款）
         orders_wait_seller    = orders.filter(order_state_id=2)  # 待賣家確認（可取消）
-        orders_need_pay       = orders.filter(order_state_id=3)  # 待付款（上傳匯款）
+        orders_waitship       = orders.filter(order_state_id=4)  # 待出貨
         orders_to_receive     = orders.filter(order_state_id=5)  # 已出貨待收貨
 
         ctx_common.update({
             "orders_choose_payment": orders_choose_payment,
             "orders_wait_seller":    orders_wait_seller,
-            "orders_need_pay":       orders_need_pay,
+            "orders_waitship":       orders_waitship,
             "orders_to_receive":     orders_to_receive,
         })
         return render(request, "buyer.html", ctx_common)
     
     else:  # seller
         orders_pending  = orders.filter(order_state_id=2)  # 待賣家確認
-        orders_waitpay  = orders.filter(order_state_id=3)  # 待付款（銀行）
+        orders_waitpay  = orders.filter(order_state_id__in=[1, 3])  # 待付款（銀行）
         orders_waitship = orders.filter(order_state_id=4)  # 待出貨
         
         ctx_common.update({

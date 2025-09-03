@@ -52,7 +52,7 @@ def buyer_action(request, order):
 
     # 上傳匯款憑證（銀行路徑）
     elif order.order_state_id == ORDER_WAIT_PAY and action == 'need_pay':
-        return redirect('upload_payment_proof')
+        return redirect('upload_payment_proof', order_id=order.id)
 
     # 確認收貨
     elif order.order_state_id == ORDER_SHIPPED and action == 'confirm_received':
