@@ -1,13 +1,13 @@
 {% load static %}
-{# tabs_buyer/to_receive.html #}
+{# tabs_buyer/order_waitship.html #}
 <div class="mb-3">
-  <h5 class="mb-0">已出貨／待收貨</h5>
+  <h5 class="mb-0">待付款</h5>
 </div>
 
 {% if orders %}
   <div class="order-container">
     {% for order in orders %}
-      {% if order.order_state_id == 5 %}
+      {% if order.order_state_id == 3 %}
       <div class="order-card p-3 mb-3 border rounded shadow-sm">
         <!-- 左上角賣家 -->
         <div class="order-header mb-2">
@@ -26,11 +26,11 @@
               <img src="{% static 'images/no_image.png' %}" class="product-img" alt="No image">
             {% endif %}
             <div class="d-flex align-items-center flex-grow-1 justify-content-center custom-gap">
+              <p class="mb-0">{{ order.shop.name }}</p>
               <p class="mb-0">{{ product_order.product.name }}</p>
               <p class="mb-0">數量：{{ product_order.quantity }}</p>
-              <p class="small">
-              <!-- 付款類型：{{ order.payment_category|default:"-" }} ／ 付款狀態：{{ order.pay_state_id }} -->
-              </p>
+              <p class="money mb-0">{{ product_order.product.price }}$</p>
+              <!-- <p class="small">付款類型：{{ order.payment_category|default:"-" }}</p> -->
             </div>
           </div>
           {% endfor %}
@@ -38,12 +38,12 @@
 
         <!-- 操作按鈕靠右 -->
         <div class="order-actions mt-3 d-flex justify-content-end flex-wrap gap-2">
-          <!-- 確認收貨 -->
+          <!-- 上傳匯款憑證 -->
           <form method="post" action="{% url 'buyer_action' order.id %}" class="d-inline">
             {% csrf_token %}
-            <input type="hidden" name="action" value="confirm_received">
+            <input type="hidden" name="action" value="need_pay">
             <input type="hidden" name="next" value="{{ request.get_full_path }}">
-            <button type="submit" class="btn2 btn-success btn-sm js-confirm" data-msg="確認已收貨？">確認收貨</button>
+            <button type="submit" class="btn2 btn-warning btn-sm">上傳匯款憑證</button>
           </form>
         </div>
       </div>
@@ -51,7 +51,7 @@
     {% endfor %}
   </div>
 {% else %}
-  <div class="alert alert-info border-0 bg-light text-muted">
-    目前沒有已出貨／待收貨的訂單。
+  <div class="alert alert-info text-muted">
+    目前沒有待付款的訂單。
   </div>
 {% endif %}

@@ -1,43 +1,51 @@
+{% load static %}
 {# tabs/payment.html #}
 <div class="mb-3">
-  <h5 class="mb-0">付款確認（待買家付款）</h5>
-  <small class="text-muted">只顯示狀態 = 3 的訂單</small>
+  <h5 class="mb-0">付款確認</h5>
 </div>
 
-{% with have_items=False %}
-  {% if orders_waitpay %}
-  <div class="row g-3">
+{% if orders_waitpay %}
+  <div class="order-container">
     {% for order in orders_waitpay %}
       {% if order.order_state_id == 3 %}
-        {% firstof 'x' as _ %}{% with True as have_items %}{% endwith %}
-        <div class="col-12">
-          <div class="card shadow-sm">
-            <div class="card-body d-flex justify-content-between flex-wrap">
-              <div class="me-3">
-                <div class="fw-bold">#{{ order.id }}｜{{ order.shop.name }}</div>
-                <div class="text-muted small">
-                  建立：{{ order.create|date:"Y/m/d H:i" }} ／ 更新：{{ order.update|date:"Y/m/d H:i" }}
-                </div>
-                <div class="small">付款類型：{{ order.payment_category|default:"-" }}</div>
-              </div>
-
-              <div class="d-flex align-items-center gap-2 mt-2 mt-md-0">
-                <!-- 通知買家付款 -->
-                <form method="post" action="{% url 'seller_action' order.id %}">
-                  {% csrf_token %}
-                  <input type="hidden" name="action" value="notify_payment">
-                  <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                  <button class="btn btn-warning btn-sm">通知買家付款</button>
-                </form>
-              </div>
-            </div>
-          </div>
+      <div class="order-card p-3 mb-3 border rounded shadow-sm">
+        <!-- 左上角買家 -->
+        <div class="order-header mb-2">
+          <strong>{{ order.user.username }}</strong>
         </div>
+        <!-- 灰線 -->
+        <div class="order-divider mb-2"></div>
+
+        <!-- 訂單基本資訊 -->
+        <div class="order-content mb-2">
+          {% for product_order in order.productorder_set.all %}
+          <div class="d-flex align-items-center mb-2 gap-3">
+            {% if payment.proof_img %}
+              <img src="{{ payment.proof_img.url }}" class="payment-img" alt="付款證明">
+            {% else %}
+              <div class="payment-img no-proof">
+                尚未上傳付款證明
+              </div>
+            {% endif %}
+            <strong>應匯款金額：<span class="money">{{ order.first_amount }}$</span></strong>
+          </div>
+          {% endfor %}
+        </div>
+
+        <!-- 操作按鈕靠右 -->
+        <div class="order-actions mt-3 d-flex justify-content-end flex-wrap gap-2">
+          <!-- 通知買家付款 -->
+          <form method="post" action="{% url 'seller_action' order.id %}" class="d-inline">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="notify_payment">
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button type="submit" class="btn2 btn-warning btn-sm">通知買家付款</button>
+          </form>
+        </div>
+      </div>
       {% endif %}
     {% endfor %}
   </div>
-
-  {% else %}
-    <div class="alert alert-info">目前沒有「待買家付款」的訂單。</div>
-  {% endif %}
-{% endwith %}
+{% else %}
+  <div class="alert alert-info">目前沒有「待買家付款」的訂單。</div>
+{% endif %}

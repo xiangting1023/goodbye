@@ -20,10 +20,10 @@
     {% endif %}
 
     <div class="action-buttons mb-4">
-      <button class="action-btn btn btn-outline-primary me-2" data-tab="bchoose">待選付款方式</button>
-      <button class="action-btn btn btn-outline-primary me-2" data-tab="bwaitseller">賣家待確認</button>
-      <button class="action-btn btn btn-outline-primary me-2" data-tab="bpayment">待付款</button>
-      <button class="action-btn btn btn-outline-primary" data-tab="bshipping">已出貨/待收貨</button>
+      <button class="action-btn btn me-2" data-tab="bchoose">待選付款方式</button>
+      <button class="action-btn btn me-2" data-tab="bwaitseller">賣家待確認</button>
+      <button class="action-btn btn me-2" data-tab="bpayment">待付款</button>
+      <button class="action-btn btn me-2" data-tab="bshipping">已出貨/待收貨</button>
     </div>
     
     <div id="tab-bchoose">
@@ -33,7 +33,7 @@
       {% include 'btabs/wait_seller.html' with orders=orders_wait_seller %}
     </div>
     <div id="tab-bpayment" style="display:none;">
-      {% include 'btabs/need_pay.html' with orders=orders_need_pay %}
+      {% include 'btabs/order_waitship.html' with orders=orders_order_waitship %}
     </div>
     <div id="tab-bshipping" style="display:none;">
       {% include 'btabs/to_receive.html' with orders=orders_to_receive %}

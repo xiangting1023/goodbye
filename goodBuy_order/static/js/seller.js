@@ -55,4 +55,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (tabs.includes(current)) showTab(current);
     });
   });
-  
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('.js-confirm');
+  if (btn && !confirm(btn.dataset.msg || '確定要執行此操作嗎？')) {
+    e.preventDefault();
+  }
+});

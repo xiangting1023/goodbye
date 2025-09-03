@@ -38,6 +38,13 @@ class Order(models.Model):
         return f'{user_display} 的訂單（{shop_display}） - {self.total} 元'
 
 
+    #猴子加的有錯的話刪掉
+    @property
+    def first_amount(self):
+        """顯示總額 - 補款，如果補款為空則直接回傳總額"""
+        return self.total - (self.second_supplement or 0)
+    #到這
+
     # 已支付總金額
     @property
     def paid_total(self):

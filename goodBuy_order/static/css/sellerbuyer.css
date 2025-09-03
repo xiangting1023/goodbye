@@ -1,11 +1,12 @@
+/* static/css/order.css */
+
 body {
     background: #FDF7EC !important;
     color: #333;
     margin-top: 150px;
 }
 
-
-
+/* 動作按鈕 */
 .action-buttons {
     display: flex;
     justify-content: center;
@@ -15,27 +16,27 @@ body {
 
 .action-btn {
     width: 200px;
-    padding: 10px; /* 加大按鈕 */
-    border-radius: 70px; /* 橢圓形 */
+    padding: 10px;
+    border-radius: 70px;
     font-weight: bold;
-    border: 2px solid #ff99aa; /* 深粉紅邊框 */
-    background-color: #fdfdfd; /* 比原本稍淺的底色 */
-    color: #ff99aa; /* 文字用深粉紅 */
+    border: 2px solid #F4A7B9;
+    background-color: #fdfdfd;
+    color: #F4A7B9;;
     transition: all 0.3s ease;
-    margin-right: 30px; /* 按鈕間距 */
+    margin-right: 30px;
     cursor: pointer;
-    font-size: 15px;    
+    font-size: 15px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
 }
 
 .action-btn.active {
-    background-color: #ff99aa; /* 按鈕底色改成深粉紅 */
-    color: white; /* 文字白色 */
-    border-color: #ff99aa;
+    background-color: #F4A7B9;
+    color: white;
+    border-color: #F4A7B9;
 }
 
 .action-btn:hover {
-    background-color: #ff99aa;
+    background-color: #F4A7B9;
     color: white;
 }
 
@@ -93,26 +94,26 @@ body {
     flex-direction: column;
 }
 
-
 /* 圖片 + 金額排列 */
 .payment-row {
   display: flex;
   align-items: center;
-  gap: 20px; /* 調整圖片與金額間距 */
+  gap: 20px;
 }
 
 /* 付款圖片 */
 .payment-img {
-  width: 120px;        /* 正方形 */
+  width: 120px;
   height: 120px;
   object-fit: cover;
   border-radius: 8px;
   display: block;
 }
+
 .product-img {
     width: 100%;
     max-width: 120px;
-    height: 120px ;
+    height: 120px;
     object-fit: cover;
     border-radius: 4px;
 }
@@ -160,30 +161,16 @@ body {
 }
 
 /* 接單按鈕 */
-.btn-accept {
-    border: 2px solid #d63384;   /* 深粉色邊框 */
-    background-color: #f8d7e5;   /* 淡粉色背景 */
-    color: #81787b;              /* 深粉色字 */
-    border-radius: 10px;         /* 圓角 */
-    padding: 6px 14px;
-    transition: all 0.3s ease;
-}
-.btn-accept:hover {
-    background-color: #f1b6d2;   /* hover → 深一點的粉 */
-    color: #fff;                 /* hover → 白字 */
-}
-
-/* 拒絕接單按鈕 */
-.btn-reject {
-    border: 2px solid #d63384;   /* 深粉色邊框 */
-    background-color: #f8d7e5;   /* 淡粉色背景 */
-    color: #81787b;              /* 深粉色字 */
-    border-radius: 10px;         /* 圓角 */
-    padding: 6px 14px;
+.btn2{
+    border: 2px solid #F4A7B9;
+    background-color: #ffffff;
+    color: #F4A7B9;
+    border-radius: 10px;
+    padding: 6px;
     transition: all 0.3s ease;
 }
 
-.btn-reject:hover {
-    background-color: #f1b6d2;   /* hover → 深一點的粉 */
+.btn2:hover {
+    background-color: #F4A7B9;;
     color: #fff;
 }
