@@ -52,7 +52,7 @@ def buyer_action(request, order):
 
     # 上傳匯款憑證（銀行路徑）
     elif order.order_state_id == ORDER_WAIT_PAY and action == 'need_pay':
-        return redirect('upload_payment_proof', order_id=order.id)
+        return redirect('upload_payment_proof')
 
     # 確認收貨
     elif order.order_state_id == ORDER_SHIPPED and action == 'confirm_received':
@@ -73,10 +73,10 @@ def buyer_action(request, order):
 
     else:
         messages.error(request, '操作無效或狀態錯誤')
-        return redirect('buyer_order_list')
+        return redirect('buyer')
 
     order.save()
-    return redirect('buyer_order_list')
+    return redirect('buyer')
 
 # -------------------------
 # 賣家訂單狀態修改
@@ -97,7 +97,7 @@ def buyer_action(request, order):
 """
 # -------------------------
 @require_POST
-@order_seller_required(redirect_to='seller_order_list')
+@order_seller_required(redirect_to='seller')
 def seller_action(request, order):
     action = request.POST.get('action')
 
@@ -112,7 +112,7 @@ def seller_action(request, order):
     # 3 → 通知買家付款（銀行）
     elif order.order_state_id == ORDER_WAIT_PAY and action == 'notify_payment':
         if not notify_buyer_to_pay(order, request):
-            return redirect('seller_order_detail', order_id=order.id)
+            return redirect('seller_order_detail')
 
     # 2 → 拒單（庫存不足）
     elif order.order_state_id == ORDER_WAIT_SELLER and action == 'reject_stock':
@@ -142,14 +142,15 @@ def seller_action(request, order):
     elif order.order_state_id == ORDER_WAIT_SHIP and action == 'shipped':
         # 非 COD 必須完成付款（定尾=7、一次付清=9）
         if order.payment_category != 'cash_on_delivery' and order.pay_state_id not in (PAY_ALL_PAID, PAY_FULL_PAID):
+            print('尚未完成付款，無法出貨')
             messages.error(request, '尚未完成付款，無法出貨')
-            return redirect('seller_order_detail', order_id=order.id)
+            return redirect('seller')
         order.order_state_id = ORDER_SHIPPED
         messages.success(request, '訂單已出貨')
 
     else:
         messages.error(request, '操作無效或狀態錯誤')
-        return redirect('seller_order_detail', order_id=order.id)
+        return redirect('seller')
 
     order.save()
     next_url = request.POST.get('next') or request.META.get('HTTP_REFERER') or 'home'

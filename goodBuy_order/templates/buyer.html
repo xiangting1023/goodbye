@@ -10,20 +10,37 @@
   {% include 'common/header.html' %}
 </head>
 <body>
-  <div class="container">
+  <div class="container mt-4">
+
+    {% if role != 'buyer' %}
+      <div class="alert alert-warning d-flex justify-content-between align-items-center">
+        <div>目前為「賣家視角」，此頁操作僅支援買家。請切換到賣家訂單列表。</div>
+        <a class="btn btn-sm btn-primary" href="{% url 'buyer' %}">切到賣家視角</a>
+      </div>
+    {% endif %}
+
     <div class="action-buttons mb-4">
-      <button class="action-btn" onclick="showTab('border')">待下單</button>
-      <button class="action-btn" onclick="showTab('bpayment')">待付款</button>
-      <button class="action-btn" onclick="showTab('bshipping')">待收貨</button>
+      <button class="action-btn btn btn-outline-primary me-2" data-tab="bchoose">待選付款方式</button>
+      <button class="action-btn btn btn-outline-primary me-2" data-tab="bwaitseller">賣家待確認</button>
+      <button class="action-btn btn btn-outline-primary me-2" data-tab="bpayment">待付款</button>
+      <button class="action-btn btn btn-outline-primary" data-tab="bshipping">已出貨/待收貨</button>
     </div>
-    <div id="buyer-content">
-      {{ btabs_order|safe }}
+    
+    <div id="tab-bchoose">
+      {% include 'btabs/choose_payment.html' with orders=orders_choose_payment %}
     </div>
+    <div id="tab-bwaitseller" style="display:none;">
+      {% include 'btabs/wait_seller.html' with orders=orders_wait_seller %}
+    </div>
+    <div id="tab-bpayment" style="display:none;">
+      {% include 'btabs/need_pay.html' with orders=orders_need_pay %}
+    </div>
+    <div id="tab-bshipping" style="display:none;">
+      {% include 'btabs/to_receive.html' with orders=orders_to_receive %}
+    </div>
+    
+    
 
-    <div id="tabs-border" style="display:none;">{{ btabs_order|safe }}</div>
-    <div id="tabs-bpayment" style="display:none;">{{ btabs_payment|safe }}</div>
-    <div id="tabs-bshipping" style="display:none;">{{ btabs_shipping|safe }}</div>
-
-  <script src="{% static 'js/buyer.js' %}"></script>
+    <script src="{% static 'js/buyer.js' %}?v=20250903a"></script>
 </body>
 </html>

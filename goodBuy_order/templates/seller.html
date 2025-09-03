@@ -11,23 +11,31 @@
 </head>
 <body>
   <div class="container mt-4">
+
+    {% if role != 'seller' %}
+      <div class="alert alert-warning d-flex justify-content-between align-items-center">
+        <div>目前為「買家視角」，此頁操作僅支援賣家。請切換到賣家訂單列表。</div>
+        <a class="btn btn-sm btn-primary" href="{% url 'seller' %}">切到賣家視角</a>
+      </div>
+    {% endif %}
+
     <div class="action-buttons mb-4">
       <button class="action-btn btn btn-outline-primary me-2" data-tab="order">接單請求</button>
       <button class="action-btn btn btn-outline-primary me-2" data-tab="payment">付款確認</button>
       <button class="action-btn btn btn-outline-primary" data-tab="shipping">待出貨</button>
     </div>
 
-   <div id="tab-order">
-      {% include 'tabs/order.html' %}
+    <div id="tab-order">
+      {% include 'tabs/order.html'   with orders=orders_pending %}
     </div>
     <div id="tab-payment" style="display:none;">
-      {% include 'tabs/payment.html' %}
+      {% include 'tabs/payment.html' with orders=orders_waitpay %}
     </div>
     <div id="tab-shipping" style="display:none;">
-      {% include 'tabs/shipping.html' %}
+      {% include 'tabs/shipping.html' with orders=orders_waitship %}
     </div>
-  </div>
+    
 
-  <script src="{% static 'js/seller.js' %}"></script>
+<script src="{% static 'js/seller.js' %}"></script>
 </body>
 </html>

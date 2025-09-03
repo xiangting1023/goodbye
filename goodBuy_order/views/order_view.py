@@ -30,46 +30,38 @@ from utils import *
 """
 # -------------------------
 @login_required(login_url='login')
-def order_list(request):
+def order_list(request, role='buyer'):
+    print(role)
     
-    # ==== 自定義群組 ====
+    # ==== 自定義群組（給上方狀態篩選用）====
     STATE_GROUPS = {
         "pending":   {"ids": [1, 3], "title": "待付款"},
         "ordered":   {"ids": [2, 4], "title": "已下單"},
         "cancelled": {"ids": [7, 8, 9, 10], "title": "未成立"},
     }
 
-    role = request.GET.get('role', 'buyer')
     shop_id = request.GET.get('shop')
     state_param = request.GET.get('state')
 
     # ---- 基本篩選：買家 or 賣家 ----
     if role == 'buyer':
         orders = Order.objects.filter(user=request.user)
-    elif role == 'seller':
+    else:  # seller
         orders = Order.objects.filter(shop__owner=request.user)
-    else:
-        orders = Order.objects.none()
 
+    # ---- 商店篩選（可選）----
     shop = None
     if shop_id:
-        try:
-            shop = Shop.objects.get(id=shop_id)
-        except Shop.DoesNotExist:
-            messages.error(request, "商店不存在")
-            return redirect('home')
+        shop = get_object_or_404(Shop, id=shop_id)
         orders = orders.filter(shop=shop)
 
-    # ---- 狀態篩選 ----
+    # ---- 狀態篩選（頁面上方快捷用）----
     title = "全部"
     if state_param:
         if state_param in STATE_GROUPS:
-            # 使用群組
             orders = orders.filter(order_state_id__in=STATE_GROUPS[state_param]["ids"])
             title = STATE_GROUPS[state_param]["title"]
-
         else:
-            # 嘗試當成單一狀態 id
             try:
                 state_id = int(state_param)
                 orders = orders.filter(order_state_id=state_id)
@@ -78,12 +70,40 @@ def order_list(request):
                 messages.warning(request, "無效的狀態參數")
                 title = "全部"
 
-    return render(request, "order_list.html", {
+    
+
+    ctx_common = {
         "title": title,
-        "orders": orders,
+        "orders": orders,        # 整體清單（若你的頁面還會用到）
         "shop": shop,
         "role": role,
-    })
+    }
+
+    if role == 'buyer':
+        orders_choose_payment = orders.filter(order_state_id=1)  # 待選付款
+        orders_wait_seller    = orders.filter(order_state_id=2)  # 待賣家確認（可取消）
+        orders_need_pay       = orders.filter(order_state_id=3)  # 待付款（上傳匯款）
+        orders_to_receive     = orders.filter(order_state_id=5)  # 已出貨待收貨
+
+        ctx_common.update({
+            "orders_choose_payment": orders_choose_payment,
+            "orders_wait_seller":    orders_wait_seller,
+            "orders_need_pay":       orders_need_pay,
+            "orders_to_receive":     orders_to_receive,
+        })
+        return render(request, "buyer.html", ctx_common)
+    
+    else:  # seller
+        orders_pending  = orders.filter(order_state_id=2)  # 待賣家確認
+        orders_waitpay  = orders.filter(order_state_id=3)  # 待付款（銀行）
+        orders_waitship = orders.filter(order_state_id=4)  # 待出貨
+        
+        ctx_common.update({
+            "orders_pending":  orders_pending,
+            "orders_waitpay":  orders_waitpay,
+            "orders_waitship": orders_waitship,
+        })
+        return render(request, "seller.html", ctx_common)
 
 # -------------------------
 # 訂單顯示 - 單一

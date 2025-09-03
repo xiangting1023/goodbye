@@ -6,8 +6,8 @@ from goodBuy_order.views import *
 urlpatterns = [
     path('checkout/', checkout_step1, name='checkout'),
     path('checkout/address_payment', checkout_step2, name='checkout_address_payment'),
-    path('buyer_action/<int:order_id>/', buyer_action, name='buyer_action'),
-    path('seller_action/<int:order_id>/', seller_action, name='seller_action'),
+    path('seller/<int:order_id>/action/', seller_action, name='seller_action'),
+    path('buyer/<int:order_id>/action/',  buyer_action,  name='buyer_action'),
     path('checkout/back/', checkout_back_to_step1, name='checkout_back_to_step1'),
     #path('batch_seller_action/', batch_seller_action, name='batch_seller_action'),
 ]
