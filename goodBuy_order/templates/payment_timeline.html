@@ -21,7 +21,7 @@
                                 <br>
                                 訂單：#{{ payment.order.id }}
                                 <br>
-                                時間：{{ payment.pay_time|localtime|date:"Y-m-d H:i" }}
+                                時間：{{ payment.pay_time|date:"Y-m-d H:i" }}
                                 {% if payment.remark %}
                                     <br><small class="text-muted">備註：{{ payment.remark }}</small>
                                 {% endif %}
