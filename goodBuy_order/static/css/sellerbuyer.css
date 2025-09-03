@@ -93,12 +93,39 @@ body {
     flex-direction: column;
 }
 
+
+/* 圖片 + 金額排列 */
+.payment-row {
+  display: flex;
+  align-items: center;
+  gap: 20px; /* 調整圖片與金額間距 */
+}
+
+/* 付款圖片 */
+.payment-img {
+  width: 120px;        /* 正方形 */
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+  display: block;
+}
 .product-img {
     width: 100%;
-    max-width: 100px;
-    height: 100px ;
+    max-width: 120px;
+    height: 120px ;
     object-fit: cover;
     border-radius: 4px;
+}
+
+/* 沒有上傳付款證明時灰底文字 */
+.no-proof {
+  background-color: #f0f0f0;
+  color: #6c757d;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 0.9rem;
+  text-align: center;
 }
 
 .product-info {
