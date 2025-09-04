@@ -742,3 +742,8 @@ a[href*="logout"] {
     height: 50px;
     margin-top:25px;
 }
+
+/* 提示訊息 */
+.alert.fade {
+  transition: opacity 2s ease; /* 慢慢消失 */
+}

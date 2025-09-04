@@ -37,7 +37,7 @@
   {% if messages %}
     <div class="container mt-3">
       {% for message in messages %}
-        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show shadow-sm"
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show shadow-sm auto-fade"
             role="alert"
             style="max-width: 960px; margin: 0 auto; border-radius: 10px;">
           {{ message }}
@@ -144,4 +144,5 @@
 </nav>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
 <script defer src="/static/js/list.js"></script>
+<script defer src="/static/js/AutoFade.js"></script>
 </header>
