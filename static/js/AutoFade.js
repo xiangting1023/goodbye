@@ -1,6 +1,6 @@
   // 自動淡出與關閉 Bootstrap alerts
 (function () {
-  const AUTO_CLOSE_MS = 2000;
+  const AUTO_CLOSE_MS = 1000;
   const alerts = document.querySelectorAll('.alert.auto-fade');
 
   alerts.forEach((el, idx) => {

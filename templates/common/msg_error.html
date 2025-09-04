@@ -1,12 +1,12 @@
 {% if messages %}
-  <div class="alert alert-danger">
-    <ul class="mb-0">
-      {% for message in messages %}
-        <!-- 過濾指定錯誤訊息 -->
-        {% if not tag or tag in message.tags %}
-          <li>{{ message }}</li>
-        {% endif %}
-      {% endfor %}
-    </ul>
+  <div class="container mt-3">
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show shadow-sm auto-fade"
+          role="alert"
+          style="max-width: 960px; margin: 0 auto; border-radius: 10px;">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
   </div>
 {% endif %}
