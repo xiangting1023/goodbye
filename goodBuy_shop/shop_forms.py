@@ -53,6 +53,10 @@ class ShopForm(forms.ModelForm):
 
         super().__init__(*args, **kwargs)
 
+        # 編輯時，分配優先不可更改
+        if self.is_edit:
+            self.fields['purchase_priority'].disabled = True
+        
         # 只允許 permission 顯示 id 1/2，並移除空白選項
         self.fields['permission'].queryset = Permission.objects.filter(id__in=[1, 2])
         self.fields['permission'].empty_label = None

@@ -1,0 +1,215 @@
+/* ---- 基礎色系（可依你站內變數改） ---- */
+:root{
+  --gb-bg: #f7efdf;         /* 整體米色底 */
+  --gb-card: #fff;          /* 卡片白 */
+  --gb-line: #eee6d8;       /* 淡邊線 */
+  --gb-text: #333;
+  --gb-muted: #999;
+  --gb-green: #16a34a;      /* 收入綠 */
+  --gb-red: #e11d48;        /* 支出紅 */
+  --gb-primary: #1f68d6;    /* 藍 */
+}
+
+
+body.bg-light{
+    background: var(--gb-bg) !important; 
+}
+
+/* ---- 版面 ---- */
+.gb-ledger{
+
+   padding:140px 32px 32px;
+
+}
+
+.gb-ledger__top{
+  display:flex; 
+  align-items:center; 
+  justify-content:space-between;
+  margin-bottom: 16px;
+}
+
+.gb-ledger__title{
+  margin:0;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: .02em;
+  color: #1f2451;
+}
+
+/* ---- 月份 pill ---- */
+.gb-month { 
+    display:flex; 
+    align-items:center; 
+    gap:8px; 
+}
+
+.gb-select{
+  padding:6px 12px;
+  border:1.5px solid var(--gb-line);
+  border-radius:8px;
+  background:#fff;
+  font-weight:600;
+  cursor:pointer;
+}
+.gb-select:focus{
+  outline:none;
+  border-color: var(--gb-primary);
+  box-shadow:0 0 0 2px rgba(31,104,214,.2);
+}
+
+.gb-month__input{
+  /* 真正的 month，但做透明；仍可 focus/鍵盤操作 */
+  position:absolute; 
+  inset:0; 
+  width:100%; 
+  height:100%;
+  opacity:0; 
+  cursor:pointer;
+}
+
+.gb-month__fake{
+  display:flex; align-items:center; gap:10px;
+  background:#fff; border:1.5px solid var(--gb-line);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-weight: 700; color:#1f2451;
+  min-width: 170px; justify-content:center;
+  box-shadow: 0 1px 0 rgba(0,0,0,.02);
+}
+
+.gb-month__fake i{ 
+    font-style: normal; 
+}
+
+.gb-month__fake::after{
+  content:""; 
+  display:block; 
+  width:0; 
+  height:0;
+}
+
+.gb-month__fake:hover{ 
+    box-shadow: 0 2px 12px rgba(0,0,0,.06); 
+}
+
+/* ---- 大輸入列 ---- */
+.gb-ledger__search{ 
+    margin: 14px 0 18px; 
+}
+.gb-ledger__search input{
+  width:100%; 
+  height:44px;
+  border-radius:10px; 
+  border:1.5px solid var(--gb-line);
+  padding: 0 16px; 
+  background:#fff; 
+  outline:none;
+  font-weight:600; 
+  color: var(--gb-text);
+}
+
+.gb-ledger__search input::placeholder{ 
+    color:#b6b1a7; 
+}
+
+/* ---- 卡片表格 ---- */
+.gb-card{
+  background: var(--gb-card);
+  border: 1.5px solid var(--gb-line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.gb-table{ 
+    width:100%; 
+    border-collapse: separate;
+    border-spacing:0; 
+}
+
+.gb-table thead th{
+  background: #fbf7ef;
+  color:#4b4b4b; 
+  font-weight:800; 
+  font-size:14px;
+  text-align:left; 
+  padding: 14px 18px; 
+  border-bottom:1.5px solid var(--gb-line);
+}
+.gb-table tbody td{
+  padding:18px; 
+  border-bottom:1px solid var(--gb-line); 
+  color:var(--gb-text);
+  font-weight:600;
+}
+.gb-table tbody tr:hover td{ 
+    background:#fffdf8; 
+}
+
+.gb-table .text-right{ 
+    text-align:right; 
+}
+
+.gb-table .ellipsis{ 
+    max-width: 420px; 
+    white-space: nowrap;
+     overflow:hidden; 
+     text-overflow: ellipsis; }
+
+.money-in{ 
+    color: var(--gb-green); 
+    font-weight: 800; 
+}
+.money-out{ 
+    color: var(--gb-red);   
+    font-weight: 800; 
+}
+
+.empty{ 
+    text-align:center; 
+    color:var(--gb-muted); 
+    padding:28px 0; 
+}
+
+/* ---- 底部總計條 ---- */
+.gb-total{
+  display:flex; 
+  gap:24px; 
+  align-items:center; 
+  justify-content:flex-start;
+  background:#fff;
+  border:1.5px solid var(--gb-line);
+  border-radius:12px;
+  padding:14px 18px;
+  margin-top:16px;
+}
+
+.gb-total__out, .gb-total__in{
+  font-weight:800;
+  padding:8px 14px;
+  border-radius:8px;
+}
+.gb-total__out{ 
+    color:var(--gb-red);   
+    background:#ffe8ee; 
+}
+
+.gb-total__in { 
+    color:var(--gb-green); 
+    background:#e9f8ee; 
+}
+
+.gb-total b{ 
+    font-weight:900; 
+}
+
+/* ---- 小螢幕調整 ---- */
+@media (max-width: 768px){
+  .gb-table thead{ display:none; }
+  .gb-table tbody tr{ display:block; border-bottom:1.5px solid var(--gb-line); }
+  .gb-table tbody td{ display:flex; justify-content:space-between; gap:12px; }
+  .gb-table tbody td::before{
+    content: attr(data-label);
+    color:#6b6b6b; font-weight:700;
+  }
+}
