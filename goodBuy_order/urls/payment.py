@@ -7,6 +7,7 @@ urlpatterns = [
     path('choose/<int:order_id>/', choose_payment_method, name='choose_payment_method'),
     path('upload/<int:order_id>/', upload_payment_proof, name='upload_payment_proof'),
     path('second_supplement/<int:order_id>/', set_second_supplement, name='set_second_supplement'),
-    path('audit/<int:payment_id>/', audit_payment, name='audit_payment'),
+    path('audit/<int:payment_id>/', audit_payment, {'action':'confirm'}, name='audit_payment_confirm'),
+    path('audit/<int:payment_id>/', audit_payment, {'action':'reject'}, name='audit_payment_reject'),
     path('notify/<int:order_id>/', notify_buyer_to_pay, name='notify_to_pay'),
 ]

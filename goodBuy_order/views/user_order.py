@@ -381,77 +381,42 @@ def choose_payment_method(request, order):
     # 4) 轉去結帳頁
     return redirect('checkout_address_payment')
 
-
 # -------------------------
 # 買家上傳付款憑證
 # -------------------------
 @login_required(login_url='login')
 @order_exists_required 
 def upload_payment_proof(request, order):
-    # 擁有者檢查
-    if order.user != request.user:
-        messages.error(request, '沒有權限操作此訂單')
-        return redirect('buyer')
-    
-    # 只允許「銀行匯款」的訂單上傳憑證
-    if order.payment_category != 'remittance':
-        messages.error(request, '此訂單不需匯款，無法上傳憑證')
-        return redirect('buyer')
 
-    # 已有待審憑證就禁止重複上傳
-    if getattr(order, 'has_pending_payment_proof', False):
-        messages.error(request, '您已上傳付款憑證，請等待賣家確認或退回後再試')
-        return redirect('buyer')
+    remit_accounts = (ShopPayment.objects
+                    .filter(shop=order.shop)
+                    .exclude(payment_account__payment__name__in=['取貨付款','貨到付款']))
+    print('remit_accounts ids=', list(remit_accounts.values_list('id', flat=True)))
 
-    # 只取本店的「銀行」帳戶（名稱不在 COD_NAMES 的都視為銀行）
-    remit_accounts = (
-        ShopPayment.objects
-        .filter(shop=order.shop)
-        .exclude(payment_account__payment__name__in=COD_NAMES)
-        .select_related('payment_account', 'payment_account__payment')
-    )
 
     if request.method == 'POST':
-        form = OrderPaymentForm(request.POST, request.FILES)
-
-        account_raw = request.POST.get('payment_account_id')
-        if not account_raw:
-            messages.error(request, '請選擇匯款帳戶')
-            return redirect('buyer', order_id=order.id)
-
-        try:
-            account_id = int(account_raw)
-        except (TypeError, ValueError):
-            messages.error(request, '匯款帳戶無效')
-            return redirect('buyer', order_id=order.id)
-
-        try:
-            # 僅允許本店、且屬於「銀行」清單中的帳戶
-            shop_payment = remit_accounts.get(id=account_id)
-        except ShopPayment.DoesNotExist:
-            messages.error(request, '匯款帳戶無效')
-            return redirect('buyer', order_id=order.id)
-
+        form = OrderPaymentForm(
+            request.POST,
+            request.FILES,
+            order=order,
+            remit_accounts=remit_accounts
+        )
         if form.is_valid():
-            payment_record = form.save(commit=False)
-            payment_record.order = order
-            payment_record.shop_payment = shop_payment
-            payment_record.is_paid_by_user = True
-            payment_record.seller_state = 'wait_confirmed'
-            payment_record.save()
-
+            form.save()
+            # 訂單狀態更新
             order.order_state_id = 2
-            order.save()
+            order.save(update_fields=['order_state_id'])
 
             messages.success(request, '匯款資訊已上傳，等待賣家確認')
-            return redirect('buyer', order_id=order.id)
+            return redirect('buyer')
         else:
-            messages.error(request, '表單內容有誤，請重新確認')
+            print('POST:', {k: request.POST.get(k) for k in ['payment_account','amount']})
+            print('form errors=', form.errors.as_json())
     else:
-        form = OrderPaymentForm()
+        form = OrderPaymentForm(order=order, remit_accounts=remit_accounts)
 
     return render(request, 'upload_payment.html', {
-        'remit_accounts': remit_accounts,
         'form': form,
         'order': order,
+        'remit_accounts': remit_accounts,
     })

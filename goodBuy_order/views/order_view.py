@@ -2,8 +2,7 @@ from django.shortcuts import *
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils import timezone
-from collections import defaultdict
-from django.db.models import Sum
+from django.db.models import Exists, OuterRef, Q
 
 from goodBuy_shop.models import *
 from goodBuy_shop.views import shopInformation_many
@@ -49,6 +48,21 @@ def order_list(request, role='buyer'):
     else:  # seller
         orders = Order.objects.filter(shop__owner=request.user)
 
+    orders = orders.annotate(
+        has_payment = Exists(
+            OrderPayment.objects.filter(order=OuterRef('pk'))
+        ),
+        has_wait_confirmed = Exists(
+            OrderPayment.objects.filter(order=OuterRef('pk'), seller_state='wait_confirmed')
+        ),
+        has_returned = Exists(
+            OrderPayment.objects.filter(order=OuterRef('pk'), seller_state='returned')
+        ),
+    )
+
+    orders_all = orders.order_by('-date')
+
+
     # ---- 商店篩選（可選）----
     shop = None
     if shop_id:
@@ -70,18 +84,23 @@ def order_list(request, role='buyer'):
                 messages.warning(request, "無效的狀態參數")
                 title = "全部"
 
-    orders_all = orders.order_by('-date')  # 全部訂單
-    orders_choose_payment = orders.filter(order_state_id=1).order_by('-date')  # 待選付款
-    orders_wait_seller    = orders.filter(order_state_id=2).order_by('-date')  # 待賣家確認（可取消）
-    orders_need_payment = orders.filter(order_state_id=3).order_by('-date')  # 待付款（銀行轉帳）
-    orders_waitship       = orders.filter(order_state_id=4).order_by('-date')  # 待出貨
-    orders_to_receive     = orders.filter(order_state_id=5).order_by('-date')  # 已出貨待收貨
-    orders_completed      = orders.filter(order_state_id=6).order_by('-date')  # 已完成
-    orders_cancelled      = orders.filter(order_state_id__in=[7, 8, 9, 10]).order_by('-date')  # 未成立
+    orders_choose_payment = orders.filter(order_state_id=1).order_by('-date')
+    orders_wait_seller    = orders.filter(
+                                            Q(order_state_id=2) | Q(order_state_id=3, has_wait_confirmed=True)
+                                        ).order_by('has_wait_confirmed', '-date')
+    orders_need_payment   = orders.filter(
+                                            order_state_id=3
+                                        ).filter(
+                                            Q(has_payment=False) | Q(has_returned=True)
+                                        ).order_by('-date')
+    orders_waitship       = orders.filter(order_state_id=4).order_by('-date')
+    orders_to_receive     = orders.filter(order_state_id=5).order_by('-date')
+    orders_completed      = orders.filter(order_state_id=6).order_by('-date')
+    orders_cancelled      = orders.filter(order_state_id__in=[7, 8, 9, 10]).order_by('-date')
 
     ctx_common = {
         "title": title,
-        "orders": orders,        # 整體清單（若你的頁面還會用到）
+        "orders": orders,
         "shop": shop,
         "role": role,
     }

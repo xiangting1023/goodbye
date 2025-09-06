@@ -1,9 +1,7 @@
 from django import forms
-from .models import Order
-from goodBuy_web.models import UserAddress
-from goodBuy_order.models import OrderPayment, Order, Comment
+from django.core.exceptions import ValidationError
 
-from django import forms
+from goodBuy_order.models import OrderPayment, Comment
 from goodBuy_shop.models import ShopPayment
 
 # -------------------------
@@ -53,15 +51,22 @@ class ChoosePaymentForm(forms.Form):
 # 上傳付款憑證
 # -------------------------
 class OrderPaymentForm(forms.ModelForm):
+
+    payment_account = forms.ModelChoiceField(
+        queryset=ShopPayment.objects.none(),
+        label='匯款帳戶',
+        required=True,
+        error_messages={
+            'required': '請選擇匯款帳戶',
+            'invalid_choice': '匯款帳戶無效',
+        },
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
     class Meta:
         model = OrderPayment
-        fields = ['amount', 'pay_proof', 'remark']
+        fields = ['payment_account', 'pay_proof', 'remark']
         widgets = {
-            'amount': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'placeholder': '請輸入匯款金額',
-                'min': 1
-            }),
             'pay_proof': forms.ClearableFileInput(attrs={
                 'class': 'form-control',
                 'accept': 'image/*'
@@ -72,17 +77,64 @@ class OrderPaymentForm(forms.ModelForm):
             }),
         }
         labels = {
-            'amount': '匯款金額',
             'pay_proof': '匯款憑證上傳',
             'remark': '備註',
         }
 
-    def clean_amount(self):
-        amount = self.cleaned_data.get('amount')
-        if amount is not None and amount <= 0:
-            raise forms.ValidationError('金額必須大於 0')
-        return amount
+    def __init__(self, *args, **kwargs):
+        self.order = kwargs.pop('order', None)
+        remit_accounts = kwargs.pop('remit_accounts', None)
 
+        super().__init__(*args, **kwargs)
+
+        if remit_accounts is not None:
+            self.fields['payment_account'].queryset = remit_accounts
+        else:
+            self.fields['payment_account'].queryset = ShopPayment.objects.none()
+
+    # ------ 單欄位驗證 ------
+
+    def clean_payment_account(self):
+        acct = self.cleaned_data.get('payment_account')
+        if acct is None:
+            raise ValidationError('請選擇匯款帳戶')
+        return acct
+
+    def clean_pay_proof(self):
+        f = self.cleaned_data.get('pay_proof')
+        if not f:
+            raise ValidationError('請上傳匯款憑證')
+
+
+        # （可選）檔案大小與副檔名/Content-Type 檢查
+        max_mb = 5
+        if f.size > max_mb * 1024 * 1024:
+            raise ValidationError(f'檔案過大，請小於 {max_mb} MB')
+
+        allowed_ct = {'image/jpeg', 'image/png', 'image/gif', 'image/webp'}
+        if getattr(f, 'content_type', None) not in allowed_ct:
+            raise ValidationError('只接受 JPEG/PNG/GIF/WEBP 圖片')
+        return f
+
+    # ------ 儲存 ------
+    def save(self, commit=True):
+        if self.order is None:
+            raise ValueError('OrderPaymentForm 需要傳入 order 參數')
+        
+        # 只呼叫一次 super().save
+        instance: OrderPayment = super().save(commit=False)
+        
+        # 由後端決定金額
+        instance.amount = self.order.first_amount
+        instance.order = self.order
+        instance.shop_payment = self.cleaned_data['payment_account']
+        instance.is_paid_by_user = True
+        instance.seller_state = 'wait_confirmed'
+
+        if commit:
+            instance.save()
+        return instance
+    
 # -------------------------
 # 二次補款金額設定
 # -------------------------

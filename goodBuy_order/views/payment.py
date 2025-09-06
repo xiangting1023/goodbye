@@ -110,6 +110,7 @@ def audit_payment(request, payment):
 
     order = payment.order
     cur = order.pay_state_id
+    print(f'目前訂單付款狀態：{cur}')
 
     # 這些狀態不該再審憑證（理論上流程不會到這）
     if cur in (PAY_CASH_ON_DELIVERY, PAY_WAIT_SELECT, PAY_CANCELLED, PAY_ALL_PAID, PAY_FULL_PAID):

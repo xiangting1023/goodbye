@@ -34,7 +34,7 @@
                             <!-- 賣家匯款帳號選擇 -->
                             <div class="mb-3">
                                 <label class="form-label fw-bold">匯款至：</label>
-                                <select name="payment_account_id" class="form-select" required>
+                                <select name="payment_account" class="form-select" required>
                                     {% if remit_accounts %}
                                         {% for account in remit_accounts %}
                                             <option value="{{ account.id }}">
@@ -52,6 +52,7 @@
                             <div class="mb-3">
                                 <label class="form-label fw-bold">付款憑證：</label>
                                     {{ form.pay_proof }}
+                                <div class="text-danger small">{{ form.pay_proof.errors }}</div>
                             </div>
 
                             <!-- 備註 -->
