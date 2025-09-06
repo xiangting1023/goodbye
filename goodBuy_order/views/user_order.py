@@ -394,14 +394,14 @@ def upload_payment_proof(request, order):
         return redirect('buyer')
     
     # 只允許「銀行匯款」的訂單上傳憑證
-    if order.payment_category != 'bank':
+    if order.payment_category != 'remittance':
         messages.error(request, '此訂單不需匯款，無法上傳憑證')
-        return redirect('buyer', order_id=order.id)
+        return redirect('buyer')
 
     # 已有待審憑證就禁止重複上傳
     if getattr(order, 'has_pending_payment_proof', False):
         messages.error(request, '您已上傳付款憑證，請等待賣家確認或退回後再試')
-        return redirect('buyer', order_id=order.id)
+        return redirect('buyer')
 
     # 只取本店的「銀行」帳戶（名稱不在 COD_NAMES 的都視為銀行）
     remit_accounts = (
