@@ -3,10 +3,13 @@ from django.contrib import messages
 from django.shortcuts import *
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
+from django.http import HttpResponse, HttpResponseForbidden
+from django.urls import reverse
 
 from goodBuy_shop.models import *
 from goodBuy_web.models import *
 from goodBuy_order.models import IntentProduct
+from goodBuy_tag.models import Tag
 
 from goodBuy_shop.weighting import *
 from goodBuy_shop.hot_rank import get_hot_shops
@@ -198,3 +201,55 @@ def shopByPermissionId(request, permission_id):
     ).order_by('-date')
 
     return render(request, '查詢完成頁面', locals())
+
+# -------------------------
+# 商店複製 - 複製該商店資訊
+# -------------------------
+'''
+複製格式：
+該商店分配優先模式 #該商店狀態(現貨/非現貨) #該商店tag
+商店/賣場名
+商品名稱1 - 庫存數量 - 商品價格
+商品介紹
+該商店網址
+'''
+@login_required(login_url='login')
+def copy_shop_info(request, shop_id):
+    # 用 base_manager 抓 避免ActiveShopManager 過濾/裝飾器問題
+    shop = get_object_or_404(Shop._base_manager.select_related(
+        'purchase_priority', 'shop_state', 'permission'
+    ), pk=shop_id)
+
+    # 僅限擁有者
+    if not (request.user.is_authenticated and shop.owner_id == request.user.id):
+        return HttpResponseForbidden('只有商店擁有者可以複製')
+
+    # 組合 header：#優先模式 #現貨/非現貨 #tags
+    priority_text = (shop.purchase_priority.name or '').strip()
+    state_text = '現貨' if '現貨' in (shop.shop_state.name or '') else '非現貨'
+    tag_names = Tag.objects.filter(shoptag__shop=shop).values_list('name', flat=True)
+    tags_text = " ".join(f"#{t}" for t in tag_names) if tag_names else ""
+    header_line = f"#{priority_text} #{state_text}"
+    if tags_text:
+        header_line = f"{header_line} {tags_text}"
+
+    # 商品列表
+    products = Product.objects.filter(shop=shop).order_by('id')
+    product_lines = [f"{p.name} - 數量{max(int(p.stock or 0), 0)} - 價格{int(p.price)}" for p in products]
+
+    # 輸出商店網址
+    shop_url = request.build_absolute_uri(reverse('shop', kwargs={'shop_id': shop.id}))
+
+    # 組合商店說明
+    lines = [
+        header_line, #優先模式 現貨/非現貨 #tags
+        f"商店：{shop.name}", #商店名稱
+        *product_lines, #商品列表
+        "",
+        (shop.introduce or "").strip(),
+        "",
+        "快來GoodBuy逛逛吧！",
+        shop_url,
+    ]
+    text = "\n".join(lines).strip() + "\n"
+    return HttpResponse(text, content_type="text/plain; charset=utf-8")
