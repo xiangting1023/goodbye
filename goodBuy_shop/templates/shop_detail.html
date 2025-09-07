@@ -212,7 +212,12 @@
             </div>
     </div>
 </div>
-
+{% if copied_text %}
+<script>
+  navigator.clipboard.writeText(`{{ copied_text|escapejs }}`)
+    .catch(()=>{}); // 某些瀏覽器需使用者互動才允許複製
+</script>
+{% endif %}
 <script src="{% static 'js/shop_detail.js' %}"></script>
 </body>
 </html>
