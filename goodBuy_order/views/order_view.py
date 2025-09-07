@@ -96,7 +96,7 @@ def order_list(request, role='buyer'):
     orders_waitship       = orders.filter(order_state_id=4).order_by('-date')
     orders_to_receive     = orders.filter(order_state_id=5).order_by('-date')
     orders_completed      = orders.filter(order_state_id=6).order_by('-date')
-    orders_cancelled      = orders.filter(order_state_id__in=[7, 8, 9, 10]).order_by('-date')
+    orders_cancelled      = orders.filter(order_state_id__in=[7, 8, 9, 10, 11]).order_by('-date')
 
     ctx_common = {
         "title": title,

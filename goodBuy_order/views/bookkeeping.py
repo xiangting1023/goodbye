@@ -1,7 +1,7 @@
 from datetime import datetime
 from django.utils import timezone
 from django.utils.timezone import make_aware
-from django.db.models import Q, Case, When, Value, CharField, Sum, Prefetch
+from django.db.models import Q, Case, When, Value, CharField, Sum, F, DecimalField, Prefetch
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from goodBuy_order.models import OrderPayment
@@ -18,61 +18,71 @@ def payment_timeline(request):
     start_date = make_aware(datetime(year, month, 1))
     end_date = make_aware(datetime(year + 1, 1, 1)) if month == 12 else make_aware(datetime(year, month + 1, 1))
 
-    # 先抓出「這位使用者是買家」的訂單 id 清單，後面一律比對 order_id
-    buyer_order_ids = list(
-        Order.objects.filter(user=user).values_list('id', flat=True)
-    )
+    # 這位使用者當買家的訂單 id
+    buyer_order_ids = list(Order.objects.filter(user=user).values_list('id', flat=True))
+
+    # 期間
+    time_filter = Q(pay_time__gte=start_date, pay_time__lt=end_date)
+
+    # ★ 身分：我是賣家（用 order__shop__owner）或我是買家
+    identity_filter = Q(order__shop__owner=user) | Q(order_id__in=buyer_order_ids)
+
+    # 只納入：賣家已確認 或 取貨付款（字串 'none'）
+    state_filter = Q(seller_state__in=['confirmed', 'none'])
 
     qs = (
         OrderPayment.objects
-        .filter(
-            # 左邊：我是賣家（收入）；右邊：我是買家（支出，改成 order_id__in）
-            Q(shop_payment__shop__owner=user) | Q(order_id__in=buyer_order_ids),
-            pay_time__gte=start_date,
-            pay_time__lt=end_date,
-        )
+        .filter(time_filter & identity_filter & state_filter)
         .annotate(
             direction_type=Case(
-                When(shop_payment__shop__owner=user, then=Value('收入')),
+                When(order__shop__owner=user, then=Value('收入')),   # ★ 改這裡
                 When(order_id__in=buyer_order_ids, then=Value('支出')),
                 default=Value(''),
                 output_field=CharField()
             )
         )
-        .select_related('order')          # 之後還是可以帶 order 進來用
+        .select_related('order')
         .order_by('-pay_time')
     )
 
     all_payments = list(qs)
 
-    # 批量預取對應訂單的商品（同樣用 *_id__in）
+    # 預取商品，避免 N+1
     related_order_ids = [p.order_id for p in all_payments if p.order_id]
-
-    po_qs = (
-        ProductOrder.objects
-        .filter(order_id__in=related_order_ids)
-        .select_related('product__shop')
-    )
-
-    orders = (
-        Order.objects
-        .filter(id__in=related_order_ids)
-        .prefetch_related(Prefetch('productorder_set', queryset=po_qs))
-    )
+    po_qs = ProductOrder.objects.filter(order_id__in=related_order_ids).select_related('product__shop')
+    orders = Order.objects.filter(id__in=related_order_ids).prefetch_related(Prefetch('productorder_set', queryset=po_qs))
     order_map = {o.id: o for o in orders}
 
     for p in all_payments:
         o = order_map.get(p.order_id)
         if o:
             po_mgr = getattr(o, 'productorder_set', None)
-            po_qs = po_mgr.all() if po_mgr else ProductOrder.objects.none()
-            p.products = list(po_qs.select_related('product'))
+            po_qs_each = po_mgr.all() if po_mgr else ProductOrder.objects.none()
+            p.products = list(po_qs_each.select_related('product'))
         else:
             p.products = []
 
-    totals = qs.values('direction_type').annotate(total=Sum('amount'))
-    total_income = next((t['total'] for t in totals if t['direction_type'] == '收入'), 0) or 0
-    total_expense = next((t['total'] for t in totals if t['direction_type'] == '支出'), 0) or 0
+    # ★ 總額：用同一套身分判斷
+    agg = (
+        OrderPayment.objects
+        .filter(time_filter & identity_filter & state_filter)
+        .aggregate(
+            total_income=Sum(
+                Case(
+                    When(order__shop__owner=user, then=F('amount')),   # ★ 改這裡
+                    default=0, output_field=DecimalField()
+                )
+            ),
+            total_expense=Sum(
+                Case(
+                    When(order_id__in=buyer_order_ids, then=F('amount')),
+                    default=0, output_field=DecimalField()
+                )
+            ),
+        )
+    )
+    total_income  = agg['total_income']  or 0
+    total_expense = agg['total_expense'] or 0
 
     return render(request, 'payment_timeline.html', {
         'year': year,
