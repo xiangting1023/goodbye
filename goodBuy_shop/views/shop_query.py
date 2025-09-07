@@ -109,14 +109,16 @@ def shopById_one(request, shop):
             announcement.save()
             messages.success(request, '公告發布成功')
             return redirect('shop', shop_id=shop.id)
-    
+
+        copied_text = request.session.pop('copied_shop_info', None) # 複製商店資訊
         shop_images = shop.images.all()
         return render(request, 'shop_detail.html', {'form': form, 
                                                     'shop': shop, 
                                                     'products': products, 
                                                     'announcements': announcements,
                                                     'shop_images': shop_images,
-                                                    'tags': tags})
+                                                    'tags': tags,
+                                                    'copied_text': copied_text,})
 
     if shop.permission.id != 1:
         messages.error(request, '當前賣場不公開')
@@ -138,6 +140,7 @@ def shopById_one(request, shop):
             defaults={'date': timezone.now()}
         )
 
+    copied_text = request.session.pop('copied_shop_info', None) # 複製商店資訊
     announcements = ShopAnnouncement.objects.filter(shop=shop).order_by('-update')
     shop_images = shop.images.all()
     return render(request, 'shop_detail.html', locals())
@@ -215,41 +218,55 @@ def shopByPermissionId(request, permission_id):
 '''
 @login_required(login_url='login')
 def copy_shop_info(request, shop_id):
-    # 用 base_manager 抓 避免ActiveShopManager 過濾/裝飾器問題
-    shop = get_object_or_404(Shop._base_manager.select_related(
-        'purchase_priority', 'shop_state', 'permission'
-    ), pk=shop_id)
+    shop = get_object_or_404(
+        Shop._base_manager.select_related('purchase_priority', 'shop_state', 'permission'),
+        pk=shop_id
+    )
 
     # 僅限擁有者
-    if not (request.user.is_authenticated and shop.owner_id == request.user.id):
-        return HttpResponseForbidden('只有商店擁有者可以複製')
+    if shop.owner_id != request.user.id:
+        messages.error(request, "複製失敗，只有商店擁有者可以操作")
+        return redirect('shop', shop_id=shop.id)
 
-    # 組合 header：#優先模式 #現貨/非現貨 #tags
-    priority_text = (shop.purchase_priority.name or '').strip()
-    state_text = '現貨' if '現貨' in (shop.shop_state.name or '') else '非現貨'
-    tag_names = Tag.objects.filter(shoptag__shop=shop).values_list('name', flat=True)
-    tags_text = " ".join(f"#{t}" for t in tag_names) if tag_names else ""
-    header_line = f"#{priority_text} #{state_text}"
-    if tags_text:
-        header_line = f"{header_line} {tags_text}"
+    try:
+        # header
+        priority_text = (shop.purchase_priority.name or '').strip()
+        state_text = '現貨' if '現貨' in (shop.shop_state.name or '') else '非現貨'
+        tag_names = Tag.objects.filter(shoptag__shop=shop).values_list('name', flat=True)
+        tags_text = " ".join(f"#{t}" for t in tag_names) if tag_names else ""
+        header_line = f"#{priority_text} #{state_text}"
+        if tags_text:
+            header_line = f"{header_line} {tags_text}"
 
-    # 商品列表
-    products = Product.objects.filter(shop=shop).order_by('id')
-    product_lines = [f"{p.name} - 數量{max(int(p.stock or 0), 0)} - 價格{int(p.price)}" for p in products]
+        # 商品列表
+        products = Product.objects.filter(shop=shop).order_by('id')
+        product_lines = [
+            f"{p.name} - 數量{max(int(p.stock or 0), 0)} - 價格{int(p.price)}"
+            for p in products
+        ]
 
-    # 輸出商店網址
-    shop_url = request.build_absolute_uri(reverse('shop', kwargs={'shop_id': shop.id}))
+        # 商店網址
+        shop_url = request.build_absolute_uri(reverse('shop', kwargs={'shop_id': shop.id}))
 
-    # 組合商店說明
-    lines = [
-        header_line, #優先模式 現貨/非現貨 #tags
-        f"商店：{shop.name}", #商店名稱
-        *product_lines, #商品列表
-        "",
-        (shop.introduce or "").strip(),
-        "",
-        "快來GoodBuy逛逛吧！",
-        shop_url,
-    ]
-    text = "\n".join(lines).strip() + "\n"
-    return HttpResponse(text, content_type="text/plain; charset=utf-8")
+        # 組合文字
+        lines = [
+            header_line,
+            f"商店：{shop.name}",
+            *product_lines,
+            "",
+            (shop.introduce or "").strip(),
+            "",
+            "快來GoodBuy逛逛吧！",
+            shop_url,
+        ]
+        text = "\n".join(lines).strip() + "\n"
+
+        # 存進 session，方便你在前端需要的地方再取出
+        request.session['copied_shop_info'] = text
+
+        messages.success(request, "商店資訊複製成功")
+    except Exception as e:
+        messages.error(request, f"複製失敗，請再試一次：{e}")
+
+    # 無論成功或失敗，都回到商店詳情頁
+    return redirect('shop', shop_id=shop.id)
