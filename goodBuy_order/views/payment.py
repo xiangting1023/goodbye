@@ -139,10 +139,12 @@ def audit_payment(request, payment):
             elif cur == PAY_WAIT_DEPOSIT:
                 # 分期：定金確認
                 order.pay_state_id = PAY_DEPOSITED
+                order.order_state_id = ORDER_WAIT_PAY
 
             elif cur == PAY_WAIT_FINAL:
                 # 分期：尾款確認
                 order.pay_state_id = PAY_FINAL_PAID
+                order.order_state_id = ORDER_WAIT_PAY
 
             elif cur == PAY_WAIT_EXTRA:
                 # 分期：額外費用確認 → 全部完成

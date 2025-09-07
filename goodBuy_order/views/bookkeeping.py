@@ -63,7 +63,12 @@ def payment_timeline(request):
 
     for p in all_payments:
         o = order_map.get(p.order_id)
-        p.products = list(getattr(o, 'productorder_set', [])) if o else []
+        if o:
+            po_mgr = getattr(o, 'productorder_set', None)
+            po_qs = po_mgr.all() if po_mgr else ProductOrder.objects.none()
+            p.products = list(po_qs.select_related('product'))
+        else:
+            p.products = []
 
     totals = qs.values('direction_type').annotate(total=Sum('amount'))
     total_income = next((t['total'] for t in totals if t['direction_type'] == '收入'), 0) or 0
