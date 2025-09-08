@@ -12,22 +12,61 @@
 <body>
   <div class="header">{% include 'base.html' %}</div>
 
+<!-- 個人資料 -->
   <div class="profile-header">
-  {% if profile_user.profile.avatar %}
-    <img class="profile-avatar" src="{{ profile_user.profile.avatar.url }}" alt="頭像">
-  {% else %}
-    <img class="profile-avatar" src="{% static 'img/Defuser.png' %}" alt="預設頭像">
-  {% endif %}
 
-  <h2 class="profile-name">{{ profile_user.profile.nickname|default:profile_user.username }}</h2>
+    <div class="profile-stats-top">
+      <div class="profile-stats-row">
+      <span><i class="fa-regular fa-calendar-plus"></i> 加入時間：<b class="value">{{ profile_user.date_joined|date:"Y/m/d" }}</b></span>
+      <span><i class="fa-regular fa-thumbs-up"></i> 信譽度：<b class="value">{% if average_rank %}{{ average_rank }}{% else %}無評價{% endif %}</b></span>
+      <span><i class="fa-regular fa-user"></i> 粉絲數：<b class="value">{{ fans_count|default:0 }}</b></span>
+      <span><i class="fa-solid fa-store"></i> 賣場：<b class="value">{{ shop_count|default:0 }}</b></span>
+      
+      <!-- 黑名單按鈕 -->
+      {% if request.user.is_authenticated and request.user.id != profile_user.id %}
+      <div class="bl-button-container">
+        {% if is_blocked %}
+          <form method="POST" action="{% url 'blacklist_remove' %}">
+            {% csrf_token %}
+            <input type="hidden" name="black_user_id" value="{{ profile_user.id }}">
+            <button type="submit" class="btn btn-secondary btn-sm">移除黑名單</button>
+          </form>
+        {% else %}
+          <form method="POST" action="{% url 'blacklist_add' %}">
+            {% csrf_token %}
+            <input type="hidden" name="black_user_id" value="{{ profile_user.id }}">
+            <button type="submit" class="btn btn-danger btn-sm">加入黑名單</button>
+          </form>
+        {% endif %}
+      </div>
+    {% endif %}
 
-  <div class="profile-stats">
-    <span><i class="fa-regular fa-calendar-plus"></i> 加入時間：<b class="value">{{ profile_user.date_joined|date:"Y/m/d" }}</b></span>
-    <span><i class="fa-regular fa-thumbs-up"></i> 信譽度：<b class="value">{% if average_rank %}{{ average_rank }}{% else %}無評價{% endif %}</b></span>
-    <span><i class="fa-regular fa-user"></i> 粉絲數：<b class="value">{{ fans_count|default:0 }}</b></span>
-    <span><i class="fa-solid fa-store"></i> 賣場：<b class="value">{{ shop_count|default:0 }}</b></span>
+    </div>
+
+      <hr class="divider">
+
+    </div>
+
+    <div class="avatar-name">
+    {% if profile_user.profile.avatar %}
+      <img class="profile-avatar" src="{{ profile_user.profile.avatar.url }}" alt="頭像">
+    {% else %}
+      <img class="profile-avatar" src="{% static 'img/Defuser.png' %}" alt="預設頭像">
+    {% endif %}
+
+    <h2 class="profile-name">{{ profile_user.profile.nickname|default:profile_user.username }}</h2>
+    </div>
+
+    <!-- 自我介紹 -->
+        <p class="profile-bio">
+            {% if profile_user.profile.bio %}
+                {{ profile_user.profile.bio|linebreaksbr }}
+            {% else %}
+                這位使用者還沒有自我介紹。
+            {% endif %}
+        </p>
+
   </div>
-</div>
 
   <div class="profile-container">
     {% if block_reason %}
@@ -86,24 +125,7 @@
 
     {% endif %}
 
-    <!-- 黑名單按鈕 -->
-    {% if request.user.is_authenticated and request.user.id != profile_user.id %}
-  <div id="bl-popover" class="bl-popover" hidden>
-    {% if is_blocked %}
-      <form method="POST" action="{% url 'blacklist_remove' %}" class="mb-0">
-        {% csrf_token %}
-        <input type="hidden" name="black_user_id" value="{{ profile_user.id }}">
-        <button type="submit" class="btn btn-secondary w-100">移除黑名單</button>
-      </form>
-    {% else %}
-      <form method="POST" action="{% url 'blacklist_add' %}" class="mb-0">
-        {% csrf_token %}
-        <input type="hidden" name="black_user_id" value="{{ profile_user.id }}">
-        <button type="submit" class="btn btn-danger w-100">加入黑名單</button>
-      </form>
-    {% endif %}
-  </div>
-{% endif %}
+    
   </div>
   <script src="{% static 'js/blacklist.js' %}" defer></script>
 </body>

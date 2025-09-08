@@ -1,41 +1,95 @@
+/* =========================
+   全域設定
+========================= */
 body {
-    background: #f9f7f1;
-    margin: 0;
+  background: #f9f7f1;
+  margin: 0;
+  padding-bottom: 50px;
 }
 
+/* =========================
+   個人資訊區
+========================= */
 
 .profile-header {
-    display: grid;
-   justify-content: center;   
-   max-width: none;           
-   text-align: initial;       
-   gap: 40px;                 
-    margin: 0 auto 28px;
-   padding:140px 32px 32px;
-   background:#fff;
-   border-radius:18px;
-   box-shadow:0 2px 8px #0001;
-   display:flex;
-   align-items:center;
-
-
+    display: block; 
+    max-width: none;
+    margin: 130px auto 30px; /* 外面的上方 底部*/
+    margin-left: 200px;
+    margin-right: 200px;
+    padding: 20px 32px;      /* 裡面的 上下 左右*/
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px #0001;
+    text-align: left;
 }
 
+
+/* 那四個資訊 */
+.profile-stats-row {
+    display: flex;
+    justify-content: flex-start; /* 靠左 */
+    gap: 50px; /* 四個資訊之間間距 */
+    flex-wrap: wrap; /* 螢幕窄自動換行 */
+    margin-bottom: 10px;
+    text-align: left;
+    width: 100%;
+}
+
+
+
+/* 灰線 */
+
+.divider {
+    height: 1px;
+    background-color: #838282;
+    border: none;
+    margin: 1px 0 ; /* 上下間距 */
+    margin-bottom: 20px;
+    width: 100%;    /* 撐滿整行 */
+}
+
+
+.avatar-name {
+    display: flex;
+    align-items: center; /* 垂直置中頭像和名字 */
+    gap: 10px;
+    margin-top: 10px;
+}
+
+/* 手機螢幕時上下排列 */
+@media (max-width: 576px) {
+    .avatar-name {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+
+    .profile-stats-top {
+        flex-direction: column;
+        gap: 5px;
+    }
+}
+
+
+
+.profile-avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #f3f3f3;
+  box-shadow: 0 2px 6px #0002;
+  margin-right: 20px;
+}
 
 .profile-basic {
-    display: flex;
-   align-items: flex-start;
-    flex-direction: column;
-
-
-    
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
-/* 只調整名稱靠頭貼 */
-.profile-header { text-align: left; }  /* 防舊規則把整塊置中 */
 
 .profile-header .profile-basic h2 {
-  text-align: left !important;   /* 壓過舊的置中 */
-  align-self: flex-start;         /* 讓 h2 靠左邊界 */
   margin: 0 0 14px 0;
   font-size: 2.4rem;
   font-weight: 700;
@@ -43,209 +97,204 @@ body {
   color: #38393d;
 }
 
-
-.profile-stats {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(180px, auto)); /* 兩欄 */
-  column-gap: 32px;
-  row-gap: 10px;
-  justify-content: flex-start;   /* 讓整個 grid 置中，不影響內文對齊 */
-  margin-top: 6px;
-  gap:32px;
-  font-size:1.06rem;
-  color:#264653;
-  justify-content: flex-start;
-  margin-left: 300px !important
-
+.profile-name {
+  font-weight: 600;
 }
 
+/* 自介文字 */
+.profile-bio {
+  font-size: 0.95rem;
+  color: #555;
+  margin-bottom: 15px;
+  line-height: 1.4;
+}
 
 .profile-stats span {
-  justify-content: flex-start;
+  display: flex;
+  align-items: center;
   gap: 6px;
-      display: flex;
-    font-size: 1.20rem
-
+  font-size: 1.2rem;
 }
 
-
-
-
-.profile-container {
-    max-width: 1240px;
-
-    background: #fff8ed;
-    border-radius: 18px;
-    margin: 0 auto;
-}
-
-/* --- 個人頭像區塊 --- */
-
-
-/* 頭像 */
-.profile-avatar {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    object-fit: cover;
-    /* border: 2.5px solid #c5d6ea; */
-    background: #f3f3f3;
-    box-shadow: 0 2px 6px #0002;
-    margin-right: 0;
-    display: block;
-}
-
-/* 基本資料+統計 */
-
-.profile-name{
-    font-weight: 600
-}
-
-
-
-
-.profile-stats span {
-    display: flex;
-    align-items: center;
-    gap: 4px;
+.profile-stats i {
+  font-size: 1.1rem;
+  opacity: .9;
 }
 
 .profile-stats .value {
-    font-weight: bold;
-    color: #38393b;
-    margin-left: 3px;
+  font-weight: 700;
+  color: #38393b;
+  margin-left: 2px;
 }
 
-/* --- 區塊標題 --- */
+/* =========================
+   外層容器
+========================= */
+.profile-container {
+  max-width: 1240px;
+  background: #fff8ed;
+  border-radius: 18px;
+  margin: 0 auto;
+}
+
+/* =========================
+   區塊標題
+========================= */
 .profile-section-title {
-    margin:0px 0 14px 0;
-    font-weight: bold;
-    font-size: 1.18rem;
-    color: #264653;
-    border-bottom: 2px solid #dedede;
-    padding-bottom: 2px;
-    
-    
+  margin: 0 0 14px 0;
+  font-weight: bold;
+  font-size: 1.18rem;
+  color: #264653;
+  border-bottom: 2px solid #dedede;
+  padding-bottom: 2px;
 }
 
-/* --- 卡片區 --- */
+/* =========================
+   卡片區（賣場 / 收物文）
+========================= */
 .profile-card-list {
-    margin-bottom: 0px;
-    margin-left: -100px !important; 
+  margin-bottom: 0;
+  margin-left: -100px !important; /* ⚠️ 建議之後用 flex/overflow-x 替代 */
 }
 
 .profile-card.card {
-    border-radius: 13px;
-    box-shadow: 0 2px 8px #0001;
-    border: 1.5px solid #e6e6e6;
-    background: #fff;
-    transition: box-shadow 0.2s;
-    margin-left: -100px !important; 
-    
-    
+  border-radius: 13px;
+  box-shadow: 0 2px 8px #0001;
+  border: 1.5px solid #e6e6e6;
+  background: #fff;
+  transition: box-shadow 0.2s;
 }
+
 .profile-card.card:hover {
-    box-shadow: 0 6px 18px #2646531a;
-    border-color: #b9d2f6;
-    margin-left: -100px !important; 
+  box-shadow: 0 6px 18px #2646531a;
+  border-color: #b9d2f6;
 }
 
 .card-img-top {
-    width: 100%;
-    height: 110px;
-    object-fit: cover;
-    border-radius: 10px 10px 0 0;
-    background: #efefef;
+  width: 100%;
+  height: 110px;
+  object-fit: cover;
+  border-radius: 10px 10px 0 0;
+  background: #efefef;
 }
 
 .card-title {
-    font-weight: bold;
-    font-size: 1.07rem;
-    margin: 4px 0;
+  font-weight: bold;
+  font-size: 1.07rem;
+  margin: 4px 0;
 }
 
 .card-sub {
-    font-size: 0.92rem;
-    color: #b44;
-    margin-bottom: 2px;
+  font-size: 0.92rem;
+  color: #b44;
+  margin-bottom: 2px;
 }
 
+/* 更多按鈕 */
 .more-btn {
-    background: none;
-    border: none;
-    color: #434343;
-    font-weight: bold;
-    margin-top: 10px;
-    cursor: pointer;
-    font-size: 1rem;
-    float: right;
-}
-.row g-4{
-    margin-left: -100px !important; 
+  background: none;
+  border: none;
+  color: #434343;
+  font-weight: bold;
+  margin-top: 10px;
+  cursor: pointer;
+  font-size: 1rem;
+  float: right;
 }
 
-/* 讓卡片一行 6 張 */
+/* 讓卡片一行 6 張（桌機版） */
 .row-cols-lg-6 > .col {
-    flex: 0 0 auto;
-    width: 16.66666667%;
-    
-    
+  flex: 0 0 auto;
+  width: 16.66666667%;
 }
 
-.profile-stats span{ display:flex; align-items:center; gap:6px; }
-.profile-stats i{ font-size:1.1rem; opacity:.9; }
-.profile-stats .value{ font-weight:700; color:#38393b; margin-left:2px; }
+/* =========================
+   黑名單
+========================= */
+.profile-stats-row {
+    display: flex;
+    align-items: center;
+    gap: 100px;       /* 四個資訊之間間距 */
+    flex-wrap: wrap;  /* 螢幕窄自動換行 */
+    width: 100%;
+}
 
-/* RWD */
+.bl-button-container {
+    margin-left: auto; /* 自動推到最右邊 */
+}
+
+.bl-button-container button {
+    white-space: nowrap; /* 避免換行 */
+}
+
+
+/* =========================
+   自我介紹
+========================= */
+
+
+.profile-info {
+    display: flex;
+    flex-direction: column;
+}
+
+
+
+.profile-bio {
+    font-size: 0.95rem;
+    color: #454545;
+    font-weight: bold;
+    margin-top: 20px;
+    line-height: 1.4;
+    max-width: 1200px; /* 限制太長文字換行 */
+}
+
+/* 響應式：手機螢幕頭像與名字上下排列 */
+@media (max-width: 576px) {
+    .avatar-name {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+}
+
+/* =========================
+   RWD 響應式調整
+========================= */
 @media (max-width: 1200px) {
-    .profile-container { padding: 140px 10px 32px 10px; }
-    .row-cols-lg-6 > .col { width: 25%; }
-    .profile-header { gap: 24px; }
+  .profile-container { padding: 140px 10px 32px 10px; }
+  .row-cols-lg-6 > .col { width: 25%; }
+  .profile-header { gap: 24px; }
 }
-@media (max-width: 900px){
 
-  /* 標題回到正常左邊界（避免你桌機用的 -100px 造成溢出） */
-  .profile-section-title{
-    margin-left: 0 !important;
-  }
+@media (max-width: 900px) {
+  .profile-section-title { margin-left: 0 !important; }
 
-  /* 標題後面的卡片 .row：拿掉 Bootstrap 的左右外距，縮小欄間距 */
-  .profile-section-title + .row.g-4{
+  .profile-section-title + .row.g-4 {
     margin-left: 0 !important;
     margin-right: 0 !important;
-    --bs-gutter-x: .75rem;   /* 欄間距，想更緊可改 .5rem 或 0 */
+    --bs-gutter-x: .75rem;
   }
 
-  /* 每個欄位左右 padding 歸 0，讓卡片和標題對齊左線 */
-  .profile-section-title + .row.g-4 > [class^="col"]{
+  .profile-section-title + .row.g-4 > [class^="col"] {
     padding-left: 0 !important;
     padding-right: 0 !important;
-    justify-content: flex-start !important; /* 取消置中，靠左排 */
+    justify-content: flex-start !important;
   }
 
-  /* 評價區你桌機有加 margin-left，手機時歸 0 才不會擠出畫面 */
-  .profile-stats{
+  .profile-stats {
     margin-left: 0 !important;
-    grid-template-columns: 1fr;   /* 手機改單欄即可 */
+    grid-template-columns: 1fr;
   }
 }
+
 @media (max-width: 600px) {
-    .profile-container { padding: 80px 2vw 16px 2vw; }
-    .row-cols-lg-6 > .col { width: 50%; }
-    .profile-section-title { font-size: 1rem; }
-      .profile-stats {
+  .profile-container { padding: 80px 2vw 16px 2vw; }
+  .row-cols-lg-6 > .col { width: 50%; }
+  .profile-section-title { font-size: 1rem; }
+
+  .profile-stats {
     grid-template-columns: 1fr;
     row-gap: 8px;
   }
 }
-.bl-popover{
-  position: fixed;
-  z-index: 3000;
-  min-width: 180px;
-  padding: 10px;
-  background: #fff;
-  border: 1px solid #e6e6e6;
-  border-radius: 12px;
-  box-shadow: 0 10px 24px rgba(0,0,0,.14);
-}
-#profile-header, .profile-header{ cursor: pointer; } /* 提示可點 */
