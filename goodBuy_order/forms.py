@@ -153,7 +153,6 @@ class CommentForm(forms.ModelForm):
         model = Comment
         fields = ['rank', 'comment']
         widgets = {
-            # 'rank': forms.HiddenInput(), 改點星星
             'rank': forms.NumberInput(attrs={'min': 1, 'max': 5, 'class': 'form-control'}),
             'comment': forms.Textarea(attrs={'class': 'form-control', 'placeholder': '請留下您的評價'}),
         }
@@ -161,3 +160,25 @@ class CommentForm(forms.ModelForm):
             'rank': '評分（1~5）',
             'comment': '評論內容'
         }
+
+    # 額外欄位不給使用者輸入，而是後端傳入
+    def __init__(self, *args, **kwargs):
+        self._user = kwargs.pop("user", None)    # 評論發表者
+        self._target = kwargs.pop("target", None)  # 評論對象
+        self._role = kwargs.pop("role", None)    # 評論身份
+        self._order = kwargs.pop("order", None)  # 對應訂單
+        super().__init__(*args, **kwargs)
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if self._user:
+            instance.user = self._user
+        if self._target:
+            instance.target = self._target
+        if self._role:
+            instance.role = self._role
+        if self._order:
+            instance.order = self._order
+        if commit:
+            instance.save()
+        return instance
