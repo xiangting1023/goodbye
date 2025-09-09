@@ -130,7 +130,7 @@ def user_more(request, user_id, tab):
         is_shop = True
     elif tab == 'wants':
         if request.user.is_authenticated and request.user == profile_user:
-            items = Want.objects.filter(owner=profile_user).order_by('-date')
+            items = Want.objects.filter(user=profile_user).order_by('-update')
         elif request.user.is_authenticated:
             items = personalized_want_recommendation(user=request.user, owner=profile_user, request=request, limit=10)
         else:

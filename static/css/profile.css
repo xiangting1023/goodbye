@@ -10,7 +10,16 @@ body {
 /* =========================
    個人資訊區
 ========================= */
+.profile-container2{
 
+    max-width: none;
+    margin: 130px auto 30px; /* 外面的上方 底部*/
+    margin-left: 200px;
+    margin-right: 200px;
+    padding: 20px 32px;
+    border-radius: 10px;
+    text-align: left;
+}
 .profile-header {
     display: block; 
     max-width: none;
