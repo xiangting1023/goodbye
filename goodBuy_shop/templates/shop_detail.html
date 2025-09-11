@@ -198,7 +198,7 @@
                                     {% if user == shop.owner %}
                                     <div class="btn-group btn-group-sm">
                                         <a href="{% url 'delete_announcement' a.id %}" class="btn btn-outline-danger announcementdeletbtn" onclick="return confirm('確定要刪除這則公告嗎？');">
-                                            <img src="/static/img/delete.png" alt="icon" />
+                                            <img src="{% static 'img/delete.png' %}" alt="icon" />
                                         </a>
                                     </div>
                                     {% endif %}

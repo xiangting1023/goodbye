@@ -51,7 +51,7 @@
         <div id="product-area">
           {% for p in products %}
           <div class="card p-3 mb-3 position-relative">
-            <img src="/static/img/x.png" class="position-absolute end-0 top-0 m-2" role="button" onclick="this.parentElement.remove()">
+            <img src="{% static 'img/x.png' %}" class="position-absolute end-0 top-0 m-2" role="button" onclick="this.parentElement.remove()">
             <div class="mb-2">
               <label class="form-label">商品名稱</label>
               <input type="text" name="product_name[]" value="{{ p.name }}" class="form-control" required>

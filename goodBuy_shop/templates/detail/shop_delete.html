@@ -1,6 +1,6 @@
 <form method="post" action="{% url 'shop_delete' shop.id %}" onsubmit="return confirm('確定要刪除這個商店嗎？');">
     {% csrf_token %}
     <button type="submit" class="btn btn-sm btn-outline-danger deletbtn action-btn" title="刪除商店">
-        <img src="/static/img/delete.png" alt="icon" />
+        <img src="{% static 'img/delete.png' %}" alt="icon" />
     </button>
 </form>
