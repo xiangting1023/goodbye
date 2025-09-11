@@ -1,4 +1,5 @@
-<link rel="stylesheet" href="/static/css/error/error_msg.css/">
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/error/error_msg.css' %}">
 {% if messages %}
   <div class="container mt-3">
     {% for message in messages %}
@@ -11,4 +12,4 @@
     {% endfor %}
   </div>
 {% endif %}
-<script defer src="/static/js/AutoFade.js"></script>
+<script defer src="{% static 'js/AutoFade.js' %}"></script>
