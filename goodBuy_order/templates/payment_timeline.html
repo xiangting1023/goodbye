@@ -116,6 +116,15 @@
   </div>
 
 </div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- 用 Django 模板注入正確路由（你有 namespace 就要帶上） -->
+<script>
+  window.GB = {
+    lineUrl: "{% url 'payment_year_series' %}",
+    pieUrl:  "{% url 'expense_by_shop' %}"
+  };
+</script>
 
 <script src="{% static 'js/payment_timeline.js' %}"></script>
 </body>
