@@ -12,28 +12,23 @@ urlpatterns = [
     # 共同頁面
     path('', include('goodBuy_web.urls')),
     path('user/', include('goodBuy_web.urls.user')),
-    path('user/', include('goodBuy_order.urls.user')),
-    path('user/', include('goodBuy_order.urls')),
-    path('user/', include('goodBuy_tag.urls.user')),
-    path('user/', include('goodBuy_shop.urls.user')),
-    path('user/blacklist/', include('goodBuy_web.urls.blacklist')),
-    path('user/profile/', include('goodBuy_web.urls.profile')),
-
-
 
     path('shop/', include('goodBuy_shop.urls.shop')),
+    # path('shop/action/', include('goodBuy_shop.urls.shop_action')),
+    path('shop/user/', include('goodBuy_shop.urls.user')),
 
     path('want/', include('goodBuy_want.urls.want')),
     path('want/reply/', include('goodBuy_want.urls.want_reply')),
+    # path('want/action/', include('goodBuy_want.urls.want_action')),
 
     path('tag/', include('goodBuy_tag.urls.tag')),
+    path('tag/user/', include('goodBuy_tag.urls.user')),
 
     path('order/', include('goodBuy_order.urls.order')),
     path('order/action/', include('goodBuy_order.urls.order_action')),
     path('order/payment/', include('goodBuy_order.urls.payment')),
     path('cart/', include('goodBuy_order.urls.cart')),
     path('comment/', include('goodBuy_order.urls.comment')),
-    
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

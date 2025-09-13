@@ -1,0 +1,30 @@
+vscode：
+waitress-serve --listen=127.0.0.1:8000 goodBuy.wsgi:application
+
+更新static collect：
+py manage.py collectstatic
+
+powershell：
+cloudflared tunnel --url http://localhost:8000
+
+github網址：
+https://github.com/ntubimd-goodbye-114509/goodbye.git
+
+每次powershell執行指令後ip會換 要去settings那邊重新設定ip
+
+更新檔案
+cd C:\Users\Case509\Desktop\goodbye
+git pull origin development
+如果本地有檔案更新的話
+git add . && git commit -m "my changes"
+py manage.py migrate
+py manage.py collectstatic
+然後重啟
+
+
+server token：435b9a5d-0c29-4b83-ad1b-d17f87a827b4
+
+如果有購買網域：
+.\cloudflared tunnel run goodbuy-tunnel
+
+gray-occupational-provided-favorite.trycloudflare.com
