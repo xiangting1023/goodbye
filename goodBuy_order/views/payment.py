@@ -100,8 +100,9 @@ def list_related_payments(request):
 """
 # -------------------------
 @require_POST
-@order_payment_owner_required
-def audit_payment(request, payment):
+@login_required
+@payment_exists_required
+def audit_payment(request, payment, action='confirm'):
     action = request.POST.get('action')
 
     if payment.seller_state != 'wait_confirmed':

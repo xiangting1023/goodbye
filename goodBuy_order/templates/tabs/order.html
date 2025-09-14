@@ -42,20 +42,20 @@
                     <p class="mb-0">付款時間: {{ payment.pay_time|date:"Y-m-d H:i" }}</p>
                   </div>
 
-                  <!-- 操作按鈕 
+                  <!-- 操作按鈕 -->
                   <div class="col-md-3 d-flex gap-2">
-                  <form method="post" action="{% url 'audit_payment' payment.id %}">
+                  <form method="post" action="{% url 'audit_payment_confirm' payment.id %}">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="confirm">
                     <button type="submit" class="btn2 btn-sm">確認付款</button>
                   </form>
 
-                  <form method="post" action="{% url 'audit_payment' payment.id %}">
+                  <form method="post" action="{% url 'audit_payment_reject' payment.id %}">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="reject">
                     <button type="submit" class="btn2 btn-sm js-confirm" data-msg="確定拒絕此筆付款？">拒絕付款</button>
                   </form>
-                  </div> -->
+                  </div>
 
                 </div>
                 {% if not forloop.last %}<div class="order-divider my-2"></div>{% endif %}
