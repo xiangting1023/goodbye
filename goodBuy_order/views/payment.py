@@ -100,8 +100,9 @@ def list_related_payments(request):
 """
 # -------------------------
 @require_POST
-@order_payment_owner_required
-def audit_payment(request, payment):
+@login_required
+@payment_exists_required
+def audit_payment(request, payment, action='confirm'):
     action = request.POST.get('action')
 
     if payment.seller_state != 'wait_confirmed':
@@ -155,7 +156,7 @@ def audit_payment(request, payment):
                 # 其他狀態理論上不會到；保守處理
                 messages.warning(request, f'目前付款狀態({cur})未定義確認邏輯，已僅標記憑證為已確認')
                 payment.save()
-                return redirect('view_payment_proofs', order_id=order.id)
+                return redirect('seller')
 
             # 儲存訂單與憑證
             order.save()
@@ -167,7 +168,7 @@ def audit_payment(request, payment):
             payment.save()
             messages.success(request, '已退回憑證')
 
-    return redirect('view_payment_proofs', order_id=order.id)
+    return redirect('seller')
 
 # -------------------------
 # 賣家通知付款
