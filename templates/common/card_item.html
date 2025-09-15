@@ -9,7 +9,7 @@
     {% elif type == 'want' and want.images.exists %}
       <img src="{{ want.images.first.img.url }}" class="card-img-top object-fit-cover" alt="收物圖片">
     {% else %}
-      <img src="{% static 'images/no-image.png' %}" class="card-img-top object-fit-cover" alt="預設圖片">
+      <img src="{% static 'img/no_upcover.png' %}" class="card-img-top object-fit-cover" alt="預設圖片">
     {% endif %}
   </div>
 
