@@ -192,3 +192,13 @@ body.bg-light{
     font-weight:700;
   }
 }
+#lineChart {
+  width: 1000px;
+  height: 1300px;
+  margin: auto;
+}
+#pieChart {
+  width: 700px;
+  height: 500px;
+  margin: auto;
+}

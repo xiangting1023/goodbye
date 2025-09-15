@@ -22,21 +22,21 @@
   <div class="gb-toolbar d-flex justify-content-between align-items-center">
     <form id="filterForm" method="get" class="gb-month d-flex">
 
-  <!-- 年份下拉 -->
-  <select name="year" class="gb-select" onchange="this.form.submit()">
-    {% for y in year_options %}
-      <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}年</option>
-    {% endfor %}
-  </select>
+      <!-- 年份下拉 -->
+      <select name="year" class="gb-select" onchange="this.form.submit()">
+        {% for y in year_options %}
+          <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}年</option>
+        {% endfor %}
+      </select>
 
-  <!-- 月份下拉 -->
-  <select name="month" class="gb-select ms-2" onchange="this.form.submit()">
-    {% for m in months %}
-      <option value="{{ m }}" {% if month == m %}selected{% endif %}>{{ m }}月</option>
-    {% endfor %}
-  </select>
+      <!-- 月份下拉 -->
+      <select name="month" class="gb-select ms-2" onchange="this.form.submit()">
+        {% for m in months %}
+          <option value="{{ m }}" {% if month == m %}selected{% endif %}>{{ m }}月</option>
+        {% endfor %}
+      </select>
 
-</form>
+    </form>
 
     <div class="gb-actions">
       <button type="button" id="btnLine" class="btn btn-outline-primary btn-sm ms-2">全年收支折線圖</button>
@@ -106,26 +106,26 @@
   <div id="chartsSection" class="gb-charts container-lg" style="display:none; margin-top:24px;">
     <div class="gb-card mb-4 p-3">
       <h5 class="mb-3">全年收支折線圖（{{ year }} 年）</h5>
-      <canvas id="lineChart" height="120"></canvas>
+      <canvas id="lineChart" ></canvas>
     </div>
     <div class="gb-card p-3">
       <h5 class="mb-3">支出圓餅圖（{{ year }} 年{% if month %} / {{ month }} 月{% endif %}）</h5>
-      <canvas id="pieChart" height="120"></canvas>
+      <canvas id="pieChart"></canvas>
       <div class="text-muted small mt-2" id="pieMeta"></div>
     </div>
   </div>
 
 </div>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<!-- 用 Django 模板注入正確路由（你有 namespace 就要帶上） -->
+<!-- Django 模板注入 API URL -->
 <script>
   window.GB = {
     lineUrl: "{% url 'payment_year_series' %}",
-    pieUrl:  "{% url 'expense_by_shop' %}"
+    pieUrl:  "{% url 'income_and_expense_by_shop' %}",  <!-- 確認這個 name 與 urls.py 一致 -->
+    defaultYear: {{ year }},
+    defaultMonth: {{ month }}
   };
 </script>
-
 <script src="{% static 'js/payment_timeline.js' %}"></script>
 </body>
 </html>

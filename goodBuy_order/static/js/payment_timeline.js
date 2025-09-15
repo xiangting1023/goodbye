@@ -1,90 +1,94 @@
-(function() {
-  if (!window.GB) { alert('圖表初始化失敗：找不到 API'); return; }
-  const URL_LINE = window.GB.lineUrl;
-  const URL_PIE  = window.GB.pieUrl;
+// static/js/payment_timeline.js
+(function () {
+  console.log('[timeline] payment_timeline.js loaded');
 
-  const btnLine = document.getElementById('btnLine');
-  const btnPie  = document.getElementById('btnPie');
-
-  // 取「年 / 月」值：你頁面上已有 #filterForm 的 2 個 <select>
-  const form = document.getElementById('filterForm');
-  const yearSelect  = form?.querySelector('select[name="year"]');
-  const monthSelect = form?.querySelector('select[name="month"]');
-
-  let lineChart, pieChart;
-
-  async function fetchJSON(url) {
-    const res = await fetch(url, { credentials: 'same-origin' });
-    const ct = res.headers.get('content-type') || '';
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    if (!ct.includes('application/json')) {
-      const t = await res.text(); console.error('非 JSON 回應：', t.slice(0,300));
-      throw new Error('伺服器回傳非 JSON（可能被導向登入頁或錯誤頁）');
+  const ready = (fn) => {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', fn);
+    } else {
+      fn();
     }
-    return res.json();
-  }
+  };
 
-  function getYM() {
-    return {
-      year: parseInt(yearSelect?.value || new Date().getFullYear(), 10),
-      month: parseInt(monthSelect?.value || (new Date().getMonth()+1), 10),
-    };
-  }
+  ready(() => {
+    const btnLine = document.getElementById('btnLine');
+    const btnPie  = document.getElementById('btnPie');
+    const chartsSection = document.getElementById('chartsSection');
 
-  async function loadLineChart() {
-    const { year } = getYM();
-    const u = new URL(URL_LINE, window.location.origin);
-    u.searchParams.set('year', year);
+    if (!btnLine || !btnPie) {
+      console.error('[timeline] buttons not found');
+      return;
+    }
+    if (!window.GB) {
+      console.error('[timeline] window.GB undefined');
+      return;
+    }
 
-    const data = await fetchJSON(u);
-    const ctx = document.getElementById('lineChart').getContext('2d');
-    if (lineChart) lineChart.destroy();
+    let lineChart, pieChart;
 
-    lineChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: data.months.map(m => `${m}月`),
-        datasets: [
-          { label: '收入',     data: data.income,  tension: 0.25 },
-          { label: '支出',     data: data.expense, tension: 0.25 },
-          { label: '淨額',     data: data.net,     tension: 0.25 },
-          { label: '累積淨額', data: data.cum_net, tension: 0.25 },
-        ]
-      },
-      options: {
-        responsive: true,
-        interaction: { mode: 'index', intersect: false },
-        plugins: { legend: { position: 'top' } }
+    function ensureShown() {
+      if (chartsSection && chartsSection.style.display === 'none') {
+        chartsSection.style.display = 'block';
+      }
+    }
+
+    btnLine.addEventListener('click', async () => {
+      try {
+        console.log('[timeline] line clicked ->', GB.lineUrl, 'year=', GB.defaultYear);
+        ensureShown();
+        const res = await fetch(`${GB.lineUrl}?year=${GB.defaultYear}`, {
+          headers: { 'X-Requested-With': 'fetch' }
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+
+        const ctx = document.getElementById('lineChart').getContext('2d');
+        if (lineChart) lineChart.destroy();
+        lineChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: data.months.map(m => `${m}月`),
+            datasets: [
+              { label: '收入', data: data.income },
+              { label: '支出', data: data.expense },
+              { label: '月淨額', data: data.net },
+              { label: '累計淨額', data: data.cum_net }
+            ]
+          },
+          options: { responsive: true, interaction: { mode: 'index', intersect: false } }
+        });
+      } catch (err) {
+        console.error('[timeline] line error', err);
+        alert('載入折線圖失敗：' + err.message);
       }
     });
-  }
 
-  async function loadPieChart() {
-    const { year, month } = getYM();
-    const u = new URL(URL_PIE, window.location.origin);
-    u.searchParams.set('year', year);
-    u.searchParams.set('month', month);
+    btnPie.addEventListener('click', async () => {
+      try {
+        console.log('[timeline] pie clicked ->', GB.pieUrl, 'year=', GB.defaultYear, 'month=', GB.defaultMonth);
+        ensureShown();
+        const q = new URLSearchParams({ year: GB.defaultYear, month: GB.defaultMonth }).toString();
+        const res = await fetch(`${GB.pieUrl}?${q}`, {
+          headers: { 'X-Requested-With': 'fetch' }
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const json = await res.json();
 
-    const payload = await fetchJSON(u);
-    const ctx = document.getElementById('pieChart').getContext('2d');
-    if (pieChart) pieChart.destroy();
+        const exp = json.expense || { labels: [], values: [], total: 0 };
+        const meta = document.getElementById('pieMeta');
+        if (meta) meta.textContent = `總支出：${exp.total}（Top ${exp.labels.length} + 其他）`;
 
-    pieChart = new Chart(ctx, {
-      type: 'pie',
-      data: { labels: payload.labels, datasets: [{ data: payload.values }] },
-      options: { responsive: true, plugins: { legend: { position: 'right' } } }
+        const ctx = document.getElementById('pieChart').getContext('2d');
+        if (pieChart) pieChart.destroy();
+        pieChart = new Chart(ctx, {
+          type: 'pie',
+          data: { labels: exp.labels, datasets: [{ data: exp.values }] },
+          options: { responsive: true }
+        });
+      } catch (err) {
+        console.error('[timeline] pie error', err);
+        alert('載入圓餅圖失敗：' + err.message);
+      }
     });
-
-    const ym = payload.scope.month ? `${payload.scope.year} 年 ${payload.scope.month} 月` : `${payload.scope.year} 年（全年）`;
-    document.getElementById('pieMeta').textContent =
-      `期間：${ym} ｜ 總支出：${Number(payload.total).toLocaleString()} $`;
-  }
-
-  // 綁事件
-  btnLine?.addEventListener('click', () => loadLineChart().catch(e => alert('載入折線圖失敗：' + e.message)));
-  btnPie ?.addEventListener('click', () => loadPieChart ().catch(e => alert('載入圓餅圖失敗：' + e.message)));
-
-  // 進頁就各畫一次（可選）
-  loadLineChart().catch(console.error);
-  loadPieChart().catch(console.error);
+  });
 })();
