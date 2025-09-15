@@ -32,21 +32,9 @@
                         {% endfor %}
                         </div>
                     </div>
-
-                    <div class="left-box d-flex flex-column align-items-center me-4 main-left-box">
-                        <img id="main-image" src="{{ shop_images.first.img.url }}" alt="封面主圖" class="main-image mb-2 gallery-item active" data-src="{{ shop_images.first.img.url }}" >
-                        {% if user.is_authenticated and user.id != shop.owner.id %}
-                            <a href="{% url 'shop_collect_toggle' shop.id %}" class="btn btn-collect">
-                                {% if shop.is_collected %}
-                                    <img src="{% static 'img/full_heart.png' %}" alt="icon" class="icon-heart" />
-                                    取消收藏
-                                {% else %}
-                                    <img src="{% static 'img/heart.png' %}" alt="icon" class="icon-heart" />
-                                    收藏
-                                {% endif %}
-                            </a>
-                        {% endif %}
-                    </div>
+                    
+                    <!-- 商店收藏 -->
+                    {% include 'detail/shop_collect.html' %}
 
                     <!-- 右側：上是編輯與刪除，下是商品 -->
                     <div class="right-box">
@@ -55,6 +43,8 @@
                             <div>
                                 <h5>{{ shop.name }}</h5>
                                 <small class="text-muted">{{ shop.update|date:"Y/m/d H:i" }}</small>
+                                <!-- 標籤 -->
+                                {% include 'detail/shop_tags.html' %}
                             </div>
                             {% if user == shop.owner %}
                                 <div class="d-flex gap-2">
@@ -67,21 +57,6 @@
 
                         <!-- 下：商品選擇區 -->
                         <div>
-
-                            <!-- 標籤 -->
-                            <div class="mb-3">
-                                <div class="d-flex flex-wrap gap-2">
-                                    {% for tag in tags %}
-                                    <a href="{% url 'tagById_one' tag_id=tag.id %}"
-                                        class="badge bg-light text-dark text-decoration-none">
-                                        #{{ tag.name }}
-                                        </a>
-                                    {% empty %}
-                                        <span class="text-muted">尚未設定標籤</span>
-                                    {% endfor %}
-                                </div>
-                            </div>
-
                             <!-- 商品選項 -->
                             <h6 class="mb-3">選項></h6>
                             {% for product in products %}
@@ -91,7 +66,7 @@
                                             {% if product.img %}
                                                 <img src="{{ product.img.url }}" alt="{{ product.name }}" class="product-img">
                                             {% else %}
-                                                <div class="text-muted no-image-placeholder">暫無圖片</div>
+                                                <img src="{% static 'img/no_uppic.png' %}" class="product-img" />
                                             {% endif %}
                                         </div>
                                         <div class="col d-flex product-name-wrapper">
