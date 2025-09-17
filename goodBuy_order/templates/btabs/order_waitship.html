@@ -11,8 +11,7 @@
         <!-- 訂單標頭 -->
         <div class="order-header d-flex justify-content-between mb-2">
           <div>
-            <strong>訂單編號：</strong>{{ order.id }}
-            <span class="ms-2 text-muted">下單時間：{{ order.date|date:"Y-m-d H:i" }}</span>
+              賣家：<strong>{{ order.shop.owner.username }}</strong>
           </div>
           <div>
             <span class="badge bg-warning text-dark">待出貨</span>
@@ -35,13 +34,11 @@
                 {% endif %}
               </div>
               <!-- 商品名稱與數量 -->
-              <div class="col-md-7">
-                <p class="mb-0"><strong>{{ product_order.product.name }}</strong></p>
-                <small class="text-muted">數量：{{ product_order.quantity }}</small>
-              </div>
-              <!-- 單價 -->
-              <div class="col-md-3 text-end">
-                <p class="mb-0">單價：${{ product_order.product.price }}</p>
+              <div class="col-md-7 d-flex align-items-center justify-content-between flex-wrap">
+                  <p class="mb-0"><strong>{{ order.shop.name }}</strong></p>
+                  <p class="mb-0"><strong>{{ product_order.product.name }}</strong></p>
+                  <p class="mb-0"><strong>數量: {{ product_order.quantity }}</strong></p>
+                  <p class="money mb-0">{{ product_order.product.price }}$</p>
               </div>
             </div>
           {% endfor %}
@@ -50,7 +47,10 @@
         <!-- 訂單總額 + 操作按鈕 -->
         <div class="order-footer d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
           <div>
-            買家：<strong>{{ order.user.username }}</strong>
+          <div>
+            <strong>訂單編號：</strong>{{ order.id }}
+            <span class="ms-2 text-muted">下單時間：{{ order.date|date:"Y-m-d H:i" }}</span>
+          </div>
           </div>
           <div class="d-flex align-items-center gap-2">
             <span class="fw-bold">總金額：${{ order.total }}</span>

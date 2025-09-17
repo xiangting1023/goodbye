@@ -54,10 +54,11 @@
             </div>
           </div>
           <div class="mt-2 text-end">
-            <a class="btn2 btn-lg btn-outline-primary">
+            <a href="{% url 'create_comment' order.id %}" class="btn2 btn-lg btn-outline-primary">
               給個評價
             </a>
           </div>
+
         </div>
       </div>
     {% endfor %}

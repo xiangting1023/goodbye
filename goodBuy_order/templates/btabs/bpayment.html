@@ -33,12 +33,11 @@
                   <img src="{% static 'images/no_image.png' %}" class="product-img" alt="No image">
                 {% endif %}
               </div>
-              <div class="col-md-7">
-                <p class="mb-0"><strong>{{ product_order.product.name }}</strong></p>
-                <small class="text-muted">數量：{{ product_order.quantity }}</small>
-              </div>
-              <div class="col-md-3 text-end">
-                <p class="mb-0">單價：${{ product_order.product.price }}</p>
+              <div class="col-md-7 d-flex align-items-center justify-content-between flex-wrap">
+                  <p class="mb-0"><strong>{{ order.shop.name }}</strong></p>
+                  <p class="mb-0"><strong>{{ product_order.product.name }}</strong></p>
+                  <p class="mb-0"><strong>數量: {{ product_order.quantity }}</strong></p>
+                  <p class="money mb-0">{{ product_order.product.price }}$</p>
               </div>
             </div>
           {% endfor %}

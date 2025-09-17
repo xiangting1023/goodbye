@@ -1,0 +1,106 @@
+
+div.comment-container {
+    margin: 150px auto !important;
+    background: #ffffff !important;
+    
+}
+
+/* 框框 */
+.comment-container {
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    max-width: 600px;
+}
+
+
+/* 標題 */
+.comment-container h2 {
+    font-size: 26px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    color: #333;
+    text-align:left;
+}
+
+/* 表單 */
+.comment-form p {
+    font-size: 18px;
+    margin-bottom: 40px;
+}
+
+/* 輸入框美化 */
+.comment-form input[type="text"],
+.comment-form textarea,
+.comment-form select {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 15px;
+    transition: border 0.2s ease;
+}
+
+.comment-form input:focus,
+.comment-form textarea:focus,
+.comment-form select:focus {
+    border-color: #F4A7B9;
+    outline: none;
+    box-shadow: 0 0 6px #9b6974;
+}
+
+/* 按鈕 */
+.button-group {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.button-group .btn {
+    padding: 8px 20px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+/* 按鈕懸停效果 */
+.button-group .btn-primary:hover {
+    background-color: #545191; 
+    transform: translateY(-2px);
+    transition: all 0.2s ease;
+}
+
+.button-group .btn-secondary:hover {
+    background-color: #6c757d;
+    transform: translateY(-2px);
+    transition: all 0.2s ease;
+}
+
+/* textarea 高度自動調整 */
+.comment-form textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+/* 表單提示文字顏色 */
+.comment-form input::placeholder,
+.comment-form textarea::placeholder {
+    color: #aaa;
+}
+
+/* 回饋動畫：送出後顯示提示文字 */
+.comment-feedback {
+    text-align: center;
+    color: #28a745;
+    font-weight: 500;
+    margin-top: 15px;
+    display: none; /* 預設隱藏，由 JS 控制顯示 */
+    animation: fadeIn 0.5s ease forwards;
+}
+
+/* 簡單淡入動畫 */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
