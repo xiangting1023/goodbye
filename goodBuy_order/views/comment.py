@@ -44,7 +44,10 @@ def create_comment(request, order):
         if form.is_valid():
             form.save()
             messages.success(request, '評論新增成功')
-            return redirect('view_order_detail', order_id=order.id)
+            if role == 'buyer':
+                return redirect('buyer')
+            else:
+                return redirect('seller')
     else:
         form = CommentForm(user=request.user, target=target, role=role, order=order)
 
