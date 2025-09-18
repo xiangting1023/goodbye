@@ -125,6 +125,57 @@
 
     {% endif %}
 
+    <!-- 評論 -->
+         <!-- 評論 -->
+    <div class="profile-section-title mt-5">
+      給 {{ profile_user.profile.nickname|default:profile_user.username }} 的評價：
+    </div>
+
+    <div class="review-list">
+      {% if reviews %}
+        {% for review in reviews %}
+          <div class="review-card">
+            <div class="review-header">
+              <!-- 頭像 -->
+              <div class="review-user-info">
+                {% if review.reviewer.profile.avatar %}
+                  <img src="{{ review.reviewer.profile.avatar.url }}" class="review-avatar" alt="頭像">
+                {% else %}
+                  <img src="{% static 'img/Defuser.png' %}" class="review-avatar" alt="預設頭像">
+                {% endif %}
+                <span class="review-username">{{ review.reviewer.username }}</span>
+              </div>
+
+              <!-- 星星 -->
+              <div class="review-stars">
+                {% for i in "12345" %}
+                  {% if forloop.counter <= review.stars %}
+                    <i class="fa-solid fa-star"></i>
+                  {% else %}
+                    <i class="fa-regular fa-star"></i>
+                  {% endif %}
+                {% endfor %}
+              </div>
+            </div>
+
+            <!-- 評論文字 -->
+            <div class="review-body">
+              {{ review.comment }}
+            </div>
+
+            <!-- 時間 -->
+            <div class="review-footer">
+              {{ review.created_at|date:"Y/m/d H:i" }}
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="text-muted">暫時沒有任何評論</div>
+      {% endif %}
+    </div>
+
+
+
     
   </div>
   <script src="{% static 'js/blacklist.js' %}" defer></script>
