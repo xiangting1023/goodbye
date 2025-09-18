@@ -1,18 +1,19 @@
-
-div.comment-container {
-    margin: 150px auto !important;
-    background: #ffffff !important;
-    
+/* ==========================
+   容器樣式
+========================== */
+body {
+    padding-top: 120px; 
 }
 
-/* 框框 */
 .comment-container {
-    padding: 30px;
+    margin-top: 120px !important;
+    background: #ffffff !important;
+    border: 4px solid #F4A7B9; /* 粉色邊框 */
+    padding: 40px;
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     max-width: 600px;
 }
-
 
 /* 標題 */
 .comment-container h2 {
@@ -20,12 +21,14 @@ div.comment-container {
     font-weight: bold;
     margin-bottom: 20px;
     color: #333;
-    text-align:left;
+    text-align: left;
 }
 
-/* 表單 */
+/* ==========================
+   表單樣式
+========================== */
 .comment-form p {
-    font-size: 18px;
+    font-size: 24px;
     margin-bottom: 40px;
 }
 
@@ -38,43 +41,15 @@ div.comment-container {
     border: 1px solid #ddd;
     border-radius: 8px;
     font-size: 15px;
-    transition: border 0.2s ease;
+    transition: border 0.2s ease, box-shadow 0.2s ease;
 }
 
 .comment-form input:focus,
 .comment-form textarea:focus,
 .comment-form select:focus {
-    border-color: #F4A7B9;
+    border-color: #89515b;
     outline: none;
     box-shadow: 0 0 6px #9b6974;
-}
-
-/* 按鈕 */
-.button-group {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 20px;
-}
-
-.button-group .btn {
-    padding: 8px 20px;
-    border-radius: 8px;
-    font-size: 15px;
-    font-weight: 500;
-}
-
-/* 按鈕懸停效果 */
-.button-group .btn-primary:hover {
-    background-color: #545191; 
-    transform: translateY(-2px);
-    transition: all 0.2s ease;
-}
-
-.button-group .btn-secondary:hover {
-    background-color: #6c757d;
-    transform: translateY(-2px);
-    transition: all 0.2s ease;
 }
 
 /* textarea 高度自動調整 */
@@ -89,7 +64,76 @@ div.comment-container {
     color: #aaa;
 }
 
-/* 回饋動畫：送出後顯示提示文字 */
+/* ==========================
+   按鈕樣式
+========================== */
+.button-group {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.button-group .btn {
+    padding: 8px 20px;
+    border-radius: 8px;
+    font-size: 20px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+/* 送出按鈕 */
+.button-group .btn-primary {
+    background-color: #F4A7B9;
+    color: #fff;
+    border: none;
+}
+
+/* 送出按鈕懸停效果 */
+.button-group .btn-primary:hover {
+    background-color: #e594a8;
+    transform: translateY(-2px);
+}
+
+/* 取消按鈕 */
+.button-group .btn-secondary {
+    background-color: #fff;
+    color: #F4A7B9;
+    border: 2px solid #F4A7B9;
+}
+
+/* 取消按鈕懸停效果 */
+.button-group .btn-secondary:hover {
+    background-color: #ffffff;
+    color: #F4A7B9;
+    transform: translateY(-2px);
+}
+/* ==========================
+   星星評分樣式
+========================== */
+.star-rating {
+    display: flex;
+    gap: 5px;
+    font-size: 2rem;
+    cursor: pointer;
+}
+
+.star-rating .star {
+    color: #ccc; /* 未填滿 */
+    transition: color 0.2s, transform 0.2s;
+}
+
+.star-rating .star:hover {
+    transform: scale(1.2);
+}
+
+.star-rating .star.filled {
+    color: #ffc107; /* 填滿星星 */
+}
+
+/* ==========================
+   送出回饋動畫
+========================== */
 .comment-feedback {
     text-align: center;
     color: #28a745;
@@ -99,7 +143,7 @@ div.comment-container {
     animation: fadeIn 0.5s ease forwards;
 }
 
-/* 簡單淡入動畫 */
+/* 淡入動畫 */
 @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }

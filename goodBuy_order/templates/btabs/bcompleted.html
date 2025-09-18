@@ -56,11 +56,16 @@
           <div class="mt-2 text-end">
 
             {% if order.has_commented_by_me %}
-                <!-- 已經評論過 -->
-                <button class="btn2 btn-secondary" disabled>評論完成</button>
+                <!-- 已經評論過，淺綠色，不可點擊 -->
+                <button style="background-color:#d4edda;color:#155724;border:2px solid #c3e6cb;pointer-events:none;border-radius:8px;padding:6px 18px;font-weight:500;">
+                  評論完成
+                </button>
             {% else %}
-                <!-- 還沒評論 -->
-                <a href="{% url 'create_comment' order.id %}" class="btn2 btn-lg btn-outline-primary">立即評論</a>
+                <!-- 還沒評論，粉色立即評論 -->
+                <a href="{% url 'create_comment' order.id %}" 
+                   style="background-color:#E31720;color:white;border-radius:8px;padding:6px 18px;font-weight:500;text-decoration:none;display:inline-block;">
+                   立即評論
+                </a>
             {% endif %}
 
           </div>
