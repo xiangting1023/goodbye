@@ -63,17 +63,6 @@ class WantForm(forms.ModelForm):
         return want
 
 # -------------------------
-# 收物帖圖片表單
-# -------------------------
-class WantImgForm(forms.ModelForm):
-    class Meta:
-        model = WantImg
-        fields = ['img', 'is_cover']
-        widgets = {
-            'img': ClearableFileInput(attrs={'class': 'form-control'}),
-        }
-
-# -------------------------
 # 收物帖回覆商店選擇表單
 # -------------------------
 class ChooseShopToReplyForm(forms.Form):

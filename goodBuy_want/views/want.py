@@ -13,6 +13,15 @@ def add_want(request):
     if request.method == 'POST':
         form = WantForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
+            # 圖片非空檢查
+            images = request.FILES.getlist('images')
+            if not images:
+                messages.error(request, '請至少上傳一張圖片')
+                return render(request, 'add_want.html', {
+                    'form': form,
+                    'predefined_tags': Tag.objects.values_list('name', flat=True).distinct(),
+                })
+            
             want = form.save()
 
             # 標籤儲存邏輯
