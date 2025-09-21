@@ -87,7 +87,11 @@ body.bg-light{
   border-radius:12px; 
   overflow:hidden;
 }
-
+.gb-card canvas{
+  display:block;
+  width:100% !important;
+  height:100% !important; /* 由父容器控制高度 */
+}
 .gb-table{ 
   width:100%; 
   border-collapse:separate;
@@ -192,10 +196,11 @@ body.bg-light{
     font-weight:700;
   }
 }
-#lineChart {
-  width: 1000px;
-  height: 1500px;
-  margin: auto;
+.gb-line-wrap{
+  width:100%;
+  height:360px;        /* 你可改 320~420 */
+  max-width:1200px;    /* 避免太寬時字小 */
+  margin:0 auto;
 }
 #pieChart {
   width: 700px;

@@ -113,9 +113,11 @@
   <div id="chartsSection" class="gb-charts container-lg" style="display:none; margin-top:24px;">
     <!-- 折線圖 -->
     <div class="gb-card mb-4 p-3">
-      <h5 class="mb-3">全年收支折線圖（{{ year }} 年）</h5>
-      <canvas id="lineChart"></canvas>
-    </div>
+  <h5 class="mb-3">全年收支折線圖（{{ year }} 年）</h5>
+  <div class="gb-line-wrap">
+    <canvas id="lineChart"></canvas>
+  </div>
+</div>
 
     <!-- 兩個圓餅圖：支出 / 收入 -->
     <div class="gb-card p-3">
