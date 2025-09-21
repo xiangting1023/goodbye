@@ -41,6 +41,7 @@ def rush_status(request, shop):
         allocation_rows.append(row)
 
     return render(request, 'user_rush_status.html', locals())
+
 # -------------------------
 # 多帶商店顯示所有人多帶情況 - 交叉表
 # -------------------------

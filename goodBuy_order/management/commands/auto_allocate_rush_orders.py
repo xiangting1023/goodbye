@@ -3,7 +3,7 @@ from django.utils import timezone
 from django.db import transaction
 from collections import defaultdict
 
-from goodBuy_shop.models import Shop
+from goodBuy_shop.models import Shop, Product
 from goodBuy_order.models import Order, ProductOrder
 from ...rush_utils import get_rush_summaries
 
@@ -256,17 +256,16 @@ class Command(BaseCommand):
             if product_orders_bulk:
                 ProductOrder.objects.bulk_create(product_orders_bulk, batch_size=1000)
 
-            # （可選）真的要扣實際庫存的話，這裡一次性 UPDATE
-            # 若你的系統規劃是「結算後才扣庫存」，可以開啟這段：
-            # products_to_update = {}
-            # for pid, claimed in product_claimed.items():
-            #     if claimed > 0:
-            #         products_to_update[pid] = claimed
-            # if products_to_update:
-            #     qs = Product.objects.select_for_update().filter(id__in=products_to_update.keys())
-            #     for prod in qs:
-            #         prod.stock = max(0, prod.stock - products_to_update[prod.id])
-            #         prod.save(update_fields=['stock'])
+            # 扣庫存
+            products_to_update = {}
+            for pid, claimed in product_claimed.items():
+                if claimed > 0:
+                    products_to_update[pid] = claimed
+            if products_to_update:
+                qs = Product.objects.select_for_update().filter(id__in=products_to_update.keys())
+                for prod in qs:
+                    prod.stock = max(0, prod.stock - products_to_update[prod.id])
+                    prod.save(update_fields=['stock'])
 
             # 切回時間序 + 標記已結算
             locked_shop.purchase_priority_id = 1
