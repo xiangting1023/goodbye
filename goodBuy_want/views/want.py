@@ -54,6 +54,7 @@ def add_want(request):
         
     predefined_tags = Tag.objects.values_list('name', flat=True).distinct()
     return render(request, 'add_want.html', locals())
+
 # -------------------------
 # 編輯收物帖
 # -------------------------
@@ -115,6 +116,7 @@ def edit_want(request, want):
             messages.error(request, '表單資料有誤')
     predefined_tags = Tag.objects.values_list('name', flat=True).distinct()
     return render(request, 'edit_want.html', locals())
+
 # -------------------------
 # 刪除收物帖
 # -------------------------
@@ -125,6 +127,7 @@ def delete_want(request, want):
     want.save()
     messages.success(request, '收物帖已刪除')
     return redirect('home')
+
 # -------------------------
 # 收物帖圖片刪除
 # -------------------------
@@ -135,6 +138,7 @@ def delete_want_image(request, want, image_id):
     image.delete()
     messages.success(request, '圖片已刪除')
     return redirect('edit_want', want_id=want.id)
+
 # -------------------------
 # 收物帖圖片設定封面
 # -------------------------

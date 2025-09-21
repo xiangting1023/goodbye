@@ -32,7 +32,7 @@ def get_hot_shops(
     else:
         blocked_ids = set()
 
-    # ==== A) 建立候選集合 ====
+    # ==== 建立候選集合 ====
     owner_mode = owner is not None
     if owner_mode:
         # ★ owner 模式：只改候選的定義；不套 NEW_DAYS/進行中限制
@@ -122,7 +122,7 @@ def get_hot_shops(
     if not qs.exists():
         return qs.none()
 
-    # ==== B) 熱度評分（owner 模式與一般模式相同） ====
+    # ==== 熱度評分（owner 模式與一般模式相同） ====
     candidate_ids = list(qs.values_list('id', flat=True))
     scores = {sid: 0.0 for sid in candidate_ids}
 
@@ -161,7 +161,7 @@ def get_hot_shops(
         for sid in scores:
             scores[sid] += rnd.uniform(-jitter, jitter)
 
-    # ==== C) 排序 / 多樣性 / 抽樣 ====
+    # ==== 排序 / 多樣性 / 抽樣 ====
     prelim = sorted(candidate_ids, key=lambda sid: scores.get(sid, 0.0), reverse=True)
 
     if owner_mode:
@@ -244,7 +244,7 @@ def get_hot_shops(
             )
             return Shop.objects.filter(id__in=prelim).order_by(preserved)
 
-    # ==== D) 保序 + 寫歷史（owner 模式不寫歷史，避免汙染首頁冷卻） ====
+    # ==== 保序 + 寫歷史（owner 模式不寫歷史，避免汙染首頁冷卻） ====
     preserved = Case(
         *[When(id=pk, then=pos) for pos, pk in enumerate(final_ids)],
         output_field=IntegerField()

@@ -17,6 +17,7 @@ def restore_order_stock(order):
         if item.product:
             item.product.stock += item.quantity
             item.product.save()
+
 # -------------------------
 # 訂單狀態修改 - ex. 付款、出貨
 # -------------------------

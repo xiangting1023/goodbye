@@ -347,22 +347,18 @@ def checkout_step2(request):
 # -------------------------
 # 買家選擇付款方式
 # -------------------------
-from django.contrib import messages
-from django.shortcuts import redirect
-from django.contrib.auth.decorators import login_required
-
-PAY_STATE_AWAITING_METHOD = 10   # 請改成你實際常數
-ORDER_STATE_INIT = 1             # 請改成你實際常數
+PAY_STATE_AWAITING_METHOD = 10
+ORDER_STATE_INIT = 1
 
 @login_required(login_url='login')
 @order_exists_required 
 def choose_payment_method(request, order):
-    # 1) 擁有者檢查
+    # 擁有者檢查
     if order.user != request.user:
         messages.error(request, '沒有權限操作此訂單')
         return redirect('order_list')
 
-    # 2) 狀態校正：確保進到選付款頁可被後續 view 撈到
+    # 狀態校正：確保進到選付款頁可被後續 view 撈到
     changed = False
     if getattr(order, 'order_state_id', None) != ORDER_STATE_INIT:
         order.order_state_id = ORDER_STATE_INIT
@@ -373,12 +369,12 @@ def choose_payment_method(request, order):
     if changed:
         order.save(update_fields=['order_state_id', 'pay_state_id'])
 
-    # 3) 寫入 session（存「整數 ID」陣列）
+    # 寫入 session（存「整數 ID」陣列）
     request.session['pending_order_ids'] = [int(order.id)]
     # （理論上不需要，但保險起見）
     request.session.modified = True
 
-    # 4) 轉去結帳頁
+    # 轉去結帳頁
     return redirect('checkout_address_payment')
 
 # -------------------------

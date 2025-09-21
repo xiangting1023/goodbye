@@ -20,7 +20,7 @@ def get_hot_wants(
     tag=None,
     request=None,
     *,
-    cooldown_days=0,
+    cooldown_days=0,    # 測資少先壓低冷卻期避免無法刷新
     explore_ratio=0.12,
     jitter=0.02,
     seed_scope="hour"

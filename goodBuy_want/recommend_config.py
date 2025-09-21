@@ -11,7 +11,7 @@ HOT_WEIGHTS = {
 # -------------------------
 PERSONAL_WEIGHTS = {
     'search_keyword': 9,              # 搜尋意圖最強，權重拉高
-    'viewed_related_multiplier': 0.6, # 看過=弱意圖，別蓋過搜尋/回覆
+    'viewed_related_multiplier': 0.6, # 看過=弱意圖，避免蓋過搜尋/回覆
     'replied_related_bonus': 3,       # 回覆過=中強意圖
 }
 
@@ -21,7 +21,7 @@ PERSONAL_WEIGHTS = {
 KEYWORD_SCORES = {
     'tags': 8,        # 標籤最精準
     'title': 6,       # 標題次之
-    'post_text': 4,   # 內文再弱一些
+    'post_text': 4,   # 內文說明再弱一些
 }
 
 # -------------------------

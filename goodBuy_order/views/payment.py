@@ -32,6 +32,7 @@ def view_order_payment_history(request, order):
 
     return render(request, 'view_payment_proofs.html', {'payments': payments,
                                                         'lastest_payment': latest_payment})
+
 # -------------------------
 # 查看付款憑證 - 多筆 - 可商店查詢
 # -------------------------

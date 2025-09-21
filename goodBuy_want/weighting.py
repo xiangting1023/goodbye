@@ -26,7 +26,7 @@ def personalized_want_recommendation(
     exclude_seen=False,
     limit=20,
     *,
-    cooldown_days=0,
+    cooldown_days=0,    # 測資少先壓低冷卻期避免無法刷新
     explore_ratio=0.15,
     jitter=0.03,
     seed_scope="hour"
@@ -40,7 +40,7 @@ def personalized_want_recommendation(
     NEW_DAYS = 30
 
     # ---------------- filter ----------------
-    owner_mode = owner is not None    # ★
+    owner_mode = owner is not None 
 
     if owner_mode:
         # ★ 指定 owner：只調整候選集合，其他流程完全保留
