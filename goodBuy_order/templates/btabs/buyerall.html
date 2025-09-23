@@ -12,7 +12,7 @@
       {% for order in orders_choose_payment %}
         <div class="order-card p-3 mb-3 border rounded shadow-sm">
           <div class="order-header d-flex justify-content-between mb-2">
-            <div>賣家：<strong>{{ order.shop.owner.username }}</strong></div>
+            <div>賣家：<strong>{{ order.shop.owner.profile.nickname|default:order.shop.owner.username }}</strong></div>
             <div><span class="badge bg-secondary">待選付款</span></div>
           </div>
 
@@ -60,7 +60,7 @@
       {% for order in orders_wait_seller %}
         <div class="order-card p-3 mb-3 border rounded shadow-sm">
           <div class="order-header d-flex justify-content-between mb-2">
-            <div>賣家：<strong>{{ order.shop.owner.username }}</strong></div>
+            <div>賣家：<strong>{{ order.shop.owner.profile.nickname|default:order.shop.owner.username }}</strong></div>
             <div><span class="badge bg-warning">待確認</span></div>
           </div>
 
@@ -108,7 +108,7 @@
       {% for order in orders_need_payment %}
         <div class="order-card p-3 mb-3 border rounded shadow-sm">
           <div class="order-header d-flex justify-content-between mb-2">
-            <div>賣家：<strong>{{ order.shop.owner.username }}</strong></div>
+            <div>賣家：<strong>{{ order.shop.owner.profile.nickname|default:order.shop.owner.username }}</strong></div>
             <div><span class="badge bg-primary">待付款</span></div>
           </div>
 
@@ -156,7 +156,7 @@
       {% for order in orders_to_receive %}
         <div class="order-card p-3 mb-3 border rounded shadow-sm">
           <div class="order-header d-flex justify-content-between mb-2">
-            <div>賣家：<strong>{{ order.shop.owner.username }}</strong></div>
+            <div>賣家：<strong>{{ order.shop.owner.profile.nickname|default:order.shop.owner.username }}</strong></div>
             <div><span class="badge bg-success">已出貨</span></div>
           </div>
 
@@ -204,7 +204,7 @@
       {% for order in orders_cancelled %}
         <div class="order-card p-3 mb-3 border rounded shadow-sm">
           <div class="order-header d-flex justify-content-between mb-2">
-            <div>賣家：<strong>{{ order.shop.owner.username }}</strong></div>
+            <div>賣家：<strong>{{ order.shop.owner.profile.nickname|default:order.shop.owner.username }}</strong></div>
             <div><span class="badge bg-danger">已取消</span></div>
           </div>
 
