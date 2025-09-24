@@ -207,3 +207,6 @@ body.bg-light{
   height: 500px;
   margin: auto;
 }
+.gb-pie-wrap { width: 220px; height: 220px; position: relative; margin-inline: auto; }
+    #pieChartExpense, #pieChartIncome { width: 100% !important; height: 100% !important; }
+    #lineChart { width: 100% !important; height: 320px !important; } /* 折線圖高度 */

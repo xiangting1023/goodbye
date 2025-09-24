@@ -10,6 +10,8 @@ from django.db.models.functions import ExtractMonth, Coalesce
 
 from goodBuy_order.models import OrderPayment
 from goodBuy_order.models import *
+from django.shortcuts import render, get_object_or_404
+
 
 # -----------------
 # 月流水明細
@@ -259,4 +261,12 @@ def by_shop_income_expense_summary(request):
         "income":  to_pie(inc_rows, top_inc),
     })
 
+
+
+def payment_detail(request, payment_id):
+    payment = get_object_or_404(OrderPayment, id=payment_id)
+    return render(request, "payment_timeline_search.html", {
+        "payment": payment,
+        "order": payment.order,
+    })
 # -----------------

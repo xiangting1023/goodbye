@@ -1,0 +1,91 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>訂單細況</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="{% static 'css/checkout/step3.css' %}">
+  <link rel="stylesheet" href="{% static 'css/payment_timeline_search.css' %}">
+
+</head>
+<body>
+  {% include 'common/header.html' %}
+
+  <div class="container my-4">
+
+    <div class="order-card p-3 mb-3 shadow-sm">
+
+      <!-- 標頭：賣家＋狀態 -->
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <div>賣家：<strong>{{ order.shop.owner.profile.nickname|default:order.shop.owner.username }}</strong></div>
+        <div>
+          <!-- 這裡你也可以依照實際欄位判斷狀態 -->
+          <span class="badge bg-success badge-rounded px-3 py-2">已完成</span>
+        </div>
+      </div>
+
+      <div class="order-divider my-2"></div>
+
+      <!-- 產品列 -->
+      <div class="order-products mb-2">
+        {% for po in order.productorder_set.all %}
+          <div class="row align-items-center gx-2 mb-3">
+            <div class="col-md-2 col-4">
+              {% if po.product.img %}
+                <img src="{{ po.product.img.url }}" class="product-img" alt="{{ po.product.name }}">
+              {% else %}
+                <img src="{% static 'images/no_image.png' %}" class="product-img" alt="No image">
+              {% endif %}
+            </div>
+
+            <div class="col-md-7 col-8 d-flex align-items-center justify-content-between flex-wrap">
+              <p class="mb-1 fw-bold">{{ po.product.name }}</p>
+              <p class="mb-1">數量: {{ po.quantity }}</p>
+            </div>
+
+            <div class="col-md-3 col-12 text-md-end">
+              {% with unit_price=po.price|default:po.product.price %}
+                <span class="money">{{ unit_price|floatformat:"0" }}$</span>
+              {% endwith %}
+            </div>
+          </div>
+
+          {% if not forloop.last %}
+            <div class="order-divider my-2"></div>
+          {% endif %}
+        {% empty %}
+          <div class="text-muted">此訂單目前沒有商品資料。</div>
+        {% endfor %}
+      </div>
+
+      <!-- 底部資訊 -->
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mt-2 pt-2 border-top order-footer">
+        <div class="mb-2 mb-md-0">
+          <span class="me-3"><strong>訂單編號：</strong>{{ order.id }}</span>
+          <span><strong>下單時間：</strong>{{ order.created_at|date:"Y-m-d H:i" }}</span>
+        </div>
+
+        <div class="d-flex align-items-center gap-3">
+          <div class="fs-5">總金額：
+            <span class="money">
+              {% if order.total %}{{ order.total|floatformat:"0" }}${% else %}{{ payment.amount|floatformat:"0" }}${% endif %}
+            </span>
+          </div>
+
+          {% if comment_url %}
+            <a href="{{ comment_url }}" class="btn-review text-decoration-none">立即評論</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- 小工具列 -->
+    <div class="d-flex gap-3 mt-3">
+      <a href="{% url 'payment_timeline' %}" class="btn btn-secondary">返回記帳本</a>
+      <a href="{% url 'home' %}" class="btn btn-outline-secondary">回首頁</a>
+    </div>
+
+  </div>
+</body>
+</html>

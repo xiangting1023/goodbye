@@ -1,0 +1,44 @@
+
+    /* 簡單補齊這頁需要的樣式（若你專案已有同名 class，視覺會一致） */
+.order-card { 
+    background:#fff; 
+    border:1px solid #eee6d8;
+     border-radius:12px; 
+}
+.order-divider { 
+    height:1px; 
+    background:#eee6d8; 
+}
+.product-img {
+    width:140px; 
+    height:140px; 
+    object-fit:cover; 
+    border-radius:8px; 
+    border:1px solid #eee6d8; }
+.money { 
+    color:#e11d48; 
+    font-weight:700; 
+}
+.order-footer .btn-review { 
+    background:#e11d48; 
+    color:#fff; 
+    border:none; 
+    padding:.5rem 1rem;
+    border-radius:.5rem;
+ }
+.order-footer .btn-review:hover { 
+    opacity:.9; 
+}
+.badge-rounded { 
+    border-radius:999px; 
+}
+.order-card a, 
+.order-card strong {
+  color: #333 !important;   /* 這裡改成你要的顏色 */
+  text-decoration: none;    /* 去掉底線 */
+}
+.seller-name {
+  color:#333;     /* 或 var(--gb-text) */
+  font-weight:700;
+}
+
