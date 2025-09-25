@@ -13,7 +13,7 @@ from ..shop_utils import *
 # 收藏商店
 # -------------------------
 @shop_exists_required
-@blacklist_check(lambda shop: shop.owner, msg='你已被此賣家封鎖，無法查看', context_name='shop')
+@blacklist_check(lambda shop: shop.owner, msg='你已被此賣家封鎖', context_name='shop')
 def shop_collect_toggle(request, shop):
     if shop.owner == request.user:
         messages.warning(request, '不可以收藏自己的商店喔')
