@@ -261,12 +261,13 @@ def by_shop_income_expense_summary(request):
         "income":  to_pie(inc_rows, top_inc),
     })
 
-
-
+# -----------------
+# 單筆付款明細
+# -----------------
+@login_required
 def payment_detail(request, payment_id):
     payment = get_object_or_404(OrderPayment, id=payment_id)
     return render(request, "payment_timeline_search.html", {
         "payment": payment,
         "order": payment.order,
     })
-# -----------------

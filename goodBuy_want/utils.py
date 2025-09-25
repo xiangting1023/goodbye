@@ -1,3 +1,5 @@
+# 沒用但先不刪
+
 from functools import wraps
 from django.shortcuts import redirect
 from django.contrib import messages

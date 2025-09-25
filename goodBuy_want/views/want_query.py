@@ -4,11 +4,9 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import *
 
 from ..models import *
-from goodBuy_shop.models import Permission
 from goodBuy_web.models import SearchHistory
 
 from goodBuy_shop.models import *
-from goodBuy_shop.shop_utils import shopInformation_many
 
 from ..want_utils import *
 from utils import *

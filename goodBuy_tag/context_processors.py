@@ -1,5 +1,8 @@
-#側邊欄顯示標籤
-from .models import Tag, TagCollect
+# -------------------------
+# 側邊欄顯示標籤
+# -------------------------
+from goodBuy_tag.models import Tag, TagCollect
+
 
 def user_followed_tags(request):
     if not request.user.is_authenticated:

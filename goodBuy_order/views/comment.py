@@ -56,24 +56,6 @@ def create_comment(request, order):
 # -------------------------
 # 顯示評論和平均評價
 # -------------------------
-def _serialize_comment(c):
-    return {
-        "id": c.id,
-        "order_id": c.order_id,
-        "from_user": {
-            "id": c.user_id,
-            "username": c.user.username,
-        },
-        "to_user": {
-            "id": c.target_id,
-            "username": c.target.username,
-        },
-        "role": c.role,                 # 'buyer' 表示買家寫的評價、'seller' 表示賣家寫的評價
-        "rank": c.rank,
-        "comment": c.comment,
-        "updated_at": c.update.isoformat(),
-    }
-
 def view_user_feedback_page(request, user):
     """
     - buyer_to_seller: 買家給這位使用者（作為賣家）之評論

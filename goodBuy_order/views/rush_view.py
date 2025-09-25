@@ -1,3 +1,5 @@
+# 無用但先不刪
+
 from django.shortcuts import *
 from django.contrib import messages
 from collections import defaultdict

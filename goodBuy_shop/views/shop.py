@@ -9,9 +9,8 @@ from django.shortcuts import *
 from django.utils import timezone
 from django.http import JsonResponse
 from django.conf import settings
-from django.core.files import File
+from django.views.decorators.csrf import csrf_exempt
 
-from ..shop_forms import AnnouncementForm
 from goodBuy_shop.models import *
 from goodBuy_web.models import *
 from utils import *
@@ -122,6 +121,7 @@ def add_shop(request):
             print('表單驗證失敗:', form.errors)
             messages.error(request, '表單資料有誤')
     return render(request, 'add_shop.html', {'form': form, 'selected_images': selected_images})
+
 # -------------------------
 # 修改商店資訊（多個）
 # -------------------------
@@ -248,6 +248,7 @@ def deleteShop(request, shop):
     shop.save()
     messages.success(request, '賣場已刪除')
     return redirect('view_profile', user_id=shop.owner.id)
+
 # -------------------------
 # 商店刪除圖片
 # -------------------------
@@ -258,6 +259,7 @@ def delete_shop_image(request, shop, image_id):
     image.delete()
     messages.success(request, '圖片已刪除')
     return redirect('shop_edit', shop_id=shop.id)
+
 # -------------------------
 # 重新設定封面
 # -------------------------
@@ -268,102 +270,6 @@ def set_cover_image(request, shop, image_id):
     ShopImg.objects.filter(id=image_id, shop=shop).update(is_cover=True)
     messages.success(request, '封面已更新')
     return redirect('shop_edit', shop_id=shop.id)
-
-# -------------------------
-# 圖片自動切割
-# -------------------------
-@login_required(login_url='login')
-# @shop_owner_required
-def shop_crop_view(request):
-    # 使用者專屬子資料夾名稱
-    user_folder = f"user_{request.user.id}"
-    crop_folder = os.path.join(settings.MEDIA_ROOT, 'crop', user_folder)
-    cropped_folder = os.path.join(settings.MEDIA_ROOT, 'cropped', user_folder)
-
-    # 上傳圖片並裁切（只在 POST 執行一次）
-    if request.method == 'POST' and request.FILES.get('image'):
-        image = request.FILES['image']
-
-        os.makedirs(crop_folder, exist_ok=True)
-        os.makedirs(cropped_folder, exist_ok=True)
-
-        # 儲存圖片到 crop/user_xx/
-        ext = os.path.splitext(image.name)[1]
-        filename = f"{uuid.uuid4().hex[:8]}{ext}"
-        image_path = os.path.join(crop_folder, filename)
-
-        with open(image_path, 'wb+') as f:
-            for chunk in image.chunks():
-                f.write(chunk)
-
-        # 裁切處理，結果儲存在 cropped/user_xx/
-        cropped_images = crop_detected_objects(image_path, cropped_folder)
-
-        # 儲存相對路徑到 session（給前端使用）
-        uploaded_image = os.path.join('crop', user_folder, filename).replace('\\', '/')
-        cropped_images = [os.path.join('cropped', user_folder, os.path.basename(img)).replace('\\', '/') for img in cropped_images]
-
-        request.session['uploaded_image'] = uploaded_image
-        request.session['cropped_images'] = cropped_images
-
-        return redirect('shop_crop_view')  # 重導向避免重複裁切
-
-    # GET 請求：讀取 session 中結果
-    uploaded_image = request.session.get('uploaded_image')
-    cropped_images = request.session.get('cropped_images', [])
-
-    return render(request, 'crop_result.html', {
-        'uploaded_image': uploaded_image,
-        'cropped_images': cropped_images
-    })
-
-# -------------------------
-# 圖片自動切割 - 刪除不需要的
-# -------------------------
-from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse
-import json
-@csrf_exempt
-def delete_cropped_image(request):
-    if request.method == 'POST':
-        data = json.loads(request.body)
-        img_path = data.get('img')
-
-        if not img_path:
-            return JsonResponse({'error': '缺少圖片路徑'}, status=400)
-
-        # 刪除實體檔案
-        abs_path = os.path.join(settings.MEDIA_ROOT, img_path.replace('/', os.sep))
-        if os.path.exists(abs_path):
-            os.remove(abs_path)
-
-        # 從 session 中移除
-        cropped_images = request.session.get('cropped_images', [])
-        if img_path in cropped_images:
-            cropped_images.remove(img_path)
-            request.session['cropped_images'] = cropped_images
-
-        return JsonResponse({'success': True})
-
-    return JsonResponse({'error': '只接受 POST'}, status=405)
-
-# -------------------------
-# 圖片自動切割 - 取得裁切圖片
-# -------------------------
-@csrf_exempt
-def select_cropped_images(request):
-    if request.method == 'POST':
-        selected = request.POST.getlist('selected_images')
-
-        request.session['final_selected_images'] = selected
-
-        request.session.pop('uploaded_image', None)
-        request.session.pop('cropped_images', None)
-
-        return render(request, 'test.html', {'final_selected_images':selected})
-        # return redirect('add_shop') 
-
-    return redirect('shop_crop_view')
 
 # -------------------------
 # 前端需要 - 前端直接呼叫裁切並自動填資料
