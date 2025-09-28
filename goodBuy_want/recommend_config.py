@@ -27,7 +27,7 @@ KEYWORD_SCORES = {
 # -------------------------
 # 已推薦加權調整
 # -------------------------
-RECOMMENDED_WANT_WEIGHT_MULTIPLIER = 0.5
+RECOMMENDED_WANT_WEIGHT_MULTIPLIER = 1.0  # 若已在近 7 天內推薦，則推薦分數乘上此數
 
 # -------------------------
 # 查詢時間範圍
@@ -35,3 +35,5 @@ RECOMMENDED_WANT_WEIGHT_MULTIPLIER = 0.5
 SEARCH_HISTORY_DAYS = 3
 VIEW_DAYS = 14
 REPLY_DAYS = 14
+NEW_DAYS = 30
+RECENT_RECO_DAYS = 7
