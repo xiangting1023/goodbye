@@ -1,8 +1,9 @@
 編號：3
 檔案名稱：user_order.py
-# 目的：
-# checkout_step1：解析購買來源，依商店分組；一般單→建單扣庫存；多帶→只記錄喊單（不扣庫存）。
-# checkout_step2：為 pending 訂單設定收件地址與付款方式（COD/匯款、一次付清/定金+尾款），並更新狀態。
+目的：
+checkout_step1：解析購買來源，依商店分組；一般單→建單扣庫存；多帶→只記錄喊單（不扣庫存）。
+checkout_step2：為 pending 訂單設定收件地址與付款方式（COD/匯款、一次付清/定金+尾款），並更新狀態。
+choose_payment_method：避免使用者跳出結賬界面重新導回
 
 from django.db import transaction
 from django.db.models import F, Sum

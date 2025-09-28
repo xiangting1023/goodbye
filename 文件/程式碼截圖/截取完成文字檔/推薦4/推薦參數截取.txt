@@ -1,0 +1,22 @@
+檔案名稱：goodBuy_shop/recommend_config.py
+目的：定義推薦權重參數
+
+SEARCH_HISTORY_DAYS = 3; COLLECT_DAYS = 14; VIEW_DAYS = 14; ORDER_DAYS = 90; NEW_SHOP_DAYS = 3
+HOT_WEIGHTS = {"recent_sales": 5, "recent_views": 1, "new_shop_bonus": 3}
+PERSONAL_WEIGHTS = {"search_keyword": 9, "traded_shop_bonus": 2.5, "collected_shop_bonus": 1.8, "recent_new_shop_bonus": 0.8}
+VIEWED_RELATED_MULTIPLIER = 0.6
+RECOMMENDED_SHOP_MULTIPLIER = 0.5
+KEYWORD_SCORES = {"tags": 8, "name": 6, "introduce": 4}
+
+
+
+
+檔案名稱：goodBuy_want/recommend_config.py
+目的：定義推薦權重參數
+
+SEARCH_HISTORY_DAYS = 3; VIEW_DAYS = 14; REPLY_DAYS = 14; NEW_DAYS = 30
+HOT_WEIGHTS = {"recent_views": 1, "recent_replies": 5}
+PERSONAL_WEIGHTS = {"search_keyword": 9, "replied_related_bonus": 3}
+VIEWED_RELATED_MULTIPLIER = 0.6
+RECOMMENDED_WANT_MULTIPLIER = 0.5
+KEYWORD_SCORES = {"tags": 8, "title": 6, "post_text": 4}

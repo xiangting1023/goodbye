@@ -1,4 +1,4 @@
-編號：2
+編號：1
 檔案名稱：rush_utils.py
 目的：
 get_rush_summaries(shop, user=None)
