@@ -16,6 +16,7 @@ from goodBuy_want.recommend_config import (
     KEYWORD_SCORES,
     RECOMMENDED_WANT_WEIGHT_MULTIPLIER,
     SEARCH_HISTORY_DAYS, VIEW_DAYS, REPLY_DAYS,
+    NEW_DAYS, RECENT_RECO_DAYS
 )
 
 def personalized_want_recommendation(
@@ -27,8 +28,8 @@ def personalized_want_recommendation(
     limit=20,
     *,
     cooldown_days=0,    # 測資少先壓低冷卻期避免無法刷新
-    explore_ratio=0.15,
-    jitter=0.03,
+    explore_ratio=0.5,
+    jitter=0.05,
     seed_scope="hour"
 ):
     user = getattr(request, 'user', None)
@@ -37,7 +38,6 @@ def personalized_want_recommendation(
 
     now = timezone.now()
     blocked_ids = set(get_blocked_user_ids(user))
-    NEW_DAYS = 30
 
     # ---------------- filter ----------------
     owner_mode = owner is not None 
@@ -177,6 +177,18 @@ def personalized_want_recommendation(
         for wid in scores:
             scores[wid] += rnd.uniform(-jitter, jitter)
 
+    # 近 N 日重推「降權」：僅在 cooldown 沒啟用時才生效
+    if (cooldown_days or 0) <= 0 and RECOMMENDED_WANT_WEIGHT_MULTIPLIER < 1.0:
+        cutoff = now - timedelta(days=RECENT_RECO_DAYS)
+        recent_rec_ids = set(
+            WantRecommendationHistory.objects
+            .filter(user=user, recommended_at__gte=cutoff)
+            .values_list('shop_id', flat=True)
+        )
+        for sid in recent_rec_ids:
+            if sid in scores:
+                scores[sid] *= RECOMMENDED_WANT_WEIGHT_MULTIPLIER
+
     # ---------------- 排序 + 多樣性/抽樣 ----------------
     prelim = sorted(candidate_ids, key=lambda wid: scores.get(wid, 0), reverse=True)
 
@@ -258,18 +270,22 @@ def personalized_want_recommendation(
     )
     qs_ordered = Want.objects.filter(id__in=final_ids).order_by(preserved)
 
-    history = []
-    now_ts = timezone.now()
-    for w in qs_ordered:
-        history.append(WantRecommendationHistory(
-            user=user,
-            want=w,
-            recommended_at=now_ts,
-            source='personalized',
-            keyword=keyword or None,
-            algorithm_version='v3'
-        ))
-    if history:
-        WantRecommendationHistory.objects.bulk_create(history, ignore_conflicts=True)
+    # 主頁推薦模式才寫入推薦歷史，避免汙染首頁冷卻
+    if is_homefeed :
+        now_ts = timezone.now()
+        WantRecommendationHistory.objects.bulk_create(
+            [
+                WantRecommendationHistory(
+                    user=user,
+                    want=w,
+                    recommended_at=now_ts,
+                    source='personalized',
+                    keyword=keyword or None,
+                    algorithm_version='v3',
+                )
+                for w in qs_ordered
+            ],
+            ignore_conflicts=True,
+        )
 
     return qs_ordered

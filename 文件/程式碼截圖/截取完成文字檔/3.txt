@@ -1,0 +1,259 @@
+編號：3
+檔案名稱：user_order.py
+目的：
+checkout_step1：解析購買來源，依商店分組；一般單→建單扣庫存；多帶→只記錄喊單（不扣庫存）。
+checkout_step2：為 pending 訂單設定收件地址與付款方式（COD/匯款、一次付清/定金+尾款），並更新狀態。
+choose_payment_method：避免使用者跳出結賬界面重新導回
+
+from django.db import transaction
+from django.db.models import F, Sum
+
+COD_NAMES = {'取貨付款', '貨到付款', 'COD'}
+
+# 解析來源 → 依商店分組
+@login_required(login_url='login')
+def checkout_step1(request):
+
+       """
+       目的：解析購買來源並依商店分組；一般店建單扣庫存，搶購店只登記意向（含防尾刀延時），禁止混合結帳，完成後導向 Step2 或等待頁。
+       作法：驗證→分組→檢查混合→交易內：搶購店(延時+意向封頂)／一般店(建單+扣庫存)→清購物車→寫入 session or 等待頁。
+       """
+
+    cart_ids  = request.POST.getlist('cart_ids') if request.method == 'POST' else []
+    product_id = request.GET.get('product_id')
+    quantity   = int(request.GET.get('quantity', 1))
+
+    # 依商店分組（支援單品直購或購物車多品）
+    from collections import defaultdict
+    shop_groups = defaultdict(list)
+
+    if product_id:
+        # 單品直購：基本檢查（庫存/商店狀態/可下單）
+        product = get_object_or_404(Product, id=product_id, is_delete=False)
+        if product.stock < quantity or product.shop.permission_id != 1 or not product.shop.can_order:
+            return redirect('cart')
+        shop_groups[product.shop].append({'product': product, 'quantity': quantity})
+
+    elif cart_ids:
+        # 勾選的購物車：逐品檢查後分組
+        cart_items = (Cart.objects
+                      .select_related('product__shop')
+                      .filter(id__in=cart_ids, user=request.user))
+        if not cart_items: return redirect('cart')
+
+        for item in cart_items:
+            if item.product.stock < item.quantity or item.product.shop.permission_id != 1 or not item.product.shop.can_order:
+                return redirect('cart')
+            shop_groups[item.product.shop].append({'product': item.product, 'quantity': item.quantity})
+    else:
+        return redirect('cart')
+        # 禁止一般商店與搶購商店混合結帳
+    has_normal = any(s.purchase_priority_id == 1 for s in shop_groups.keys())
+    has_rush   = any(s.purchase_priority_id != 1 for s in shop_groups.keys())
+    if has_normal and has_rush:
+        # 避免不同流程混在同一次交易
+        return redirect('cart')
+        # 建立普通訂單和多帶喊單記錄
+    if request.method == 'POST' and 'confirm_checkout' in request.POST:
+        created_order_ids = []
+        try:
+            with transaction.atomic():
+                for shop, items in shop_groups.items():
+                    if shop.purchase_priority_id != 1:
+                        # ===== 搶購店：只記錄「購買意向」，不立刻扣庫存 =====
+                        shop = maybe_extend_rush(shop)  # 防尾刀、自動延時
+
+                        intent, _ = PurchaseIntent.objects.get_or_create(user=request.user, shop=shop)
+                        affected_product_ids = []
+
+                        for item in items:
+                            # 以 select_for_update() 重新抓商品避免併發
+                            product = (Product.objects
+                                       .select_for_update()
+                                       .select_related('shop')
+                                       .get(pk=item['product'].id))
+                            if product.shop_id != shop.id:
+                                raise ValueError('商品不屬於該商店')
+
+                            qty = int(item.get('quantity') or 0)
+                            if qty <= 0:
+                                raise ValueError('數量需大於 0')
+
+                            # 建立/取得 IntentProduct（先 defaults 避免 NOT NULL）
+                            ip, _ = IntentProduct.objects.get_or_create(
+                                intent=intent, product=product, defaults={'quantity': 0}
+                            )
+                            ip = IntentProduct.objects.select_for_update().get(pk=ip.pk)
+
+                            # ※可用數量的估算（此版以「現庫存 - 自己已登記」封頂）
+                            current_total = (IntentProduct.objects
+                                             .filter(product=product, intent__user=request.user)
+                                             .aggregate(total=Sum('quantity'))['total'] or 0)
+                            available_qty = max(product.stock - current_total, 0)
+
+                            new_qty = min(ip.quantity + qty, available_qty)
+                            if new_qty != ip.quantity:
+                                ip.quantity = new_qty
+                                ip.save(update_fields=['quantity'])
+
+                            affected_product_ids.append(product.id)
+
+                        # 移除購物車中已加入搶購的項目（不影響其他店）
+                        if 'cart_items' in locals() and cart_items:
+                            cart_items.filter(product_id__in=affected_product_ids).delete()
+                        continue
+
+                    # ===== 一般店：立即建單 + 扣庫存 =====
+                    total = sum(it['product'].price * it['quantity'] for it in items)
+                    order = Order.objects.create(
+                        user=request.user, shop=shop, total=total,
+                        order_state_id=1,  # 建立
+                        pay_state_id=10,   # 待選付款方式
+                        second_supplement=0, pay=None
+                    )
+
+                    for it in items:
+                        ProductOrder.objects.create(order=order, product=it['product'], quantity=it['quantity'])
+                        # 樂觀更新扣庫存；若不足則 rows=0 → 觸發失敗
+                        rows = Product.objects.filter(
+                            id=it['product'].id, is_delete=False, stock__gte=it['quantity']
+                        ).update(stock=F('stock') - it['quantity'])
+                        if rows == 0:
+                            raise ValueError('庫存不足')
+
+                    created_order_ids.append(order.id)
+
+                # 清購物車、引導至 Step2（付款/地址）
+                if 'cart_items' in locals() and cart_items:
+                    cart_items.delete()
+                if created_order_ids:
+                    request.session['pending_order_ids'] = created_order_ids
+                    return redirect('checkout_address_payment')
+
+                # 若全為搶購店，顯示等待分配頁
+                return render(request, 'checkout/MoreComp.html', {'shop': shop})
+        except Exception:
+            return redirect('cart')
+
+
+
+# 載入 pending 訂單與可用付款帳戶
+@login_required(login_url='login')
+def checkout_step2(request):
+
+        """
+        目的：為暫存訂單設定收件地址與付款方式（COD/匯款、一次/定金），更新狀態並顯示完成頁或搶購等待頁。
+        作法：載入 session 訂單→統計/載入可用付款帳戶→建立/重用地址→推斷付款類別與模式→設定 pay_state/order_state→清 session→渲染完成/等待頁。
+        """
+
+    order_ids = request.session.get('pending_order_ids')
+    if not order_ids: return redirect('checkout')
+
+    orders = (Order.objects
+              .filter(id__in=order_ids, user=request.user, pay_state_id=10)  # 待設定付款方式
+              .select_related('shop'))
+    if not orders: return redirect('buyer')
+
+    # 每張訂單的小計（以商品快照為準）
+    order_totals = {
+        o.id: sum(po.product.price * po.quantity for po in o.productorder_set.select_related('product'))
+        for o in orders
+    }
+
+    # 取得商店支援的付款帳戶與是否允許定金
+    allowed_payments = {}
+    allow_deposit_by_order = {}
+    for o in orders:
+        q = (ShopPayment.objects
+             .filter(shop=o.shop)
+             .select_related('payment_account', 'payment_account__payment'))
+        allowed_payments[o.id] = list(q)
+        allow_deposit_by_order[o.id] = bool(getattr(o.shop, 'allow_deposit', False))
+
+        # 設定地址與付款（COD/匯款、一次/分期）→ 寫回訂單
+    if request.method == 'POST':
+        # 建立/重用地址（以 user, phone, city, address 為準）
+        addr, created = UserAddress.objects.get_or_create(
+            user=request.user,
+            phone=request.POST.get('receiver_phone','').strip(),
+            city=request.POST.get('city','').strip(),
+            address=request.POST.get('detail_address','').strip(),
+            defaults={'name': request.POST.get('receiver_name','').strip()}
+        )
+        if not created and addr.name != request.POST.get('receiver_name','').strip():
+            addr.name = request.POST.get('receiver_name','').strip()
+            addr.save(update_fields=['name'])
+
+        # 逐張訂單設定付款選項
+        for o in orders:
+            payment_category = 'cash_on_delivery'  # 預設 COD
+            payment_mode = request.POST.get(f'payment_mode_{o.id}', 'full')  # 'full' or 'split'
+
+            # 由商店提供的付款帳戶推斷付款類別（COD vs 匯款）
+            sp_id = request.POST.get(f'payment_account_{o.id}')
+            if sp_id:
+                sp = (ShopPayment.objects
+                      .select_related('payment_account__payment')
+                      .filter(payment_account__id=sp_id, shop=o.shop).first())
+                if sp and sp.payment_account:
+                    pname = (getattr(sp.payment_account.payment, 'name', '') or '').strip()
+                    payment_category = 'cash_on_delivery' if pname in COD_NAMES else 'remittance'
+
+            # COD → 強制一次付清；匯款可視店家是否允許定金
+            if payment_category == 'cash_on_delivery':
+                pay_state_id = 1   # 取貨付款
+                payment_mode = 'full'
+            else:
+                allow_deposit = bool(getattr(o.shop, 'allow_deposit', False))
+                if not allow_deposit:
+                    payment_mode = 'full'
+                pay_state_id = 2 if payment_mode == 'split' else 8  # 2: 待上傳定金、8: 待匯全額（依你專案定義）
+
+            # 回寫訂單（狀態從「建立」進入「待出貨/待匯款資訊」等）
+            o.address = addr
+            o.payment_category = payment_category
+            o.payment_mode = payment_mode
+            o.pay_state_id = pay_state_id
+            o.order_state_id = 2
+            o.save()
+
+        # 完成後清理 session，依商店類型決定完成頁
+        request.session.pop('pending_order_ids', None)
+        if all(o.shop.purchase_priority_id != 1 for o in orders):
+            return render(request, 'checkout/MoreComp.html')
+        else:
+            return render(request, 'checkout/complete.html')
+
+# 避免使用者跳出結賬界面重新導回
+@login_required(login_url='login')
+@order_exists_required
+def choose_payment_method(request, order):
+
+    """目的：從單張訂單直接導入付款/地址設定頁（Step2）。
+    作法：確認擁有者 → 校正 order/pay 狀態 → 寫入 session → redirect Step2。
+    """
+
+    # 安全性：只能操作自己的訂單
+    if order.user != request.user:
+        messages.error(request, '沒有權限操作此訂單')
+        return redirect('order_list')
+
+    # 狀態校正：確保 Step2 的查詢條件能撈到（pay_state_id=10）
+    changed = False
+    if getattr(order, 'order_state_id', None) != ORDER_STATE_INIT:
+        order.order_state_id = ORDER_STATE_INIT
+        changed = True
+    if getattr(order, 'pay_state_id', None) != PAY_STATE_AWAITING_METHOD:
+        order.pay_state_id = PAY_STATE_AWAITING_METHOD
+        changed = True
+    if changed:
+        order.save(update_fields=['order_state_id', 'pay_state_id'])
+
+    # 讓 Step2 以 session['pending_order_ids'] 取回此訂單
+    request.session['pending_order_ids'] = [int(order.id)]
+    request.session.modified = True
+
+    # 前往結帳步驟二（設定地址與付款）
+    return redirect('checkout_address_payment')
+
+

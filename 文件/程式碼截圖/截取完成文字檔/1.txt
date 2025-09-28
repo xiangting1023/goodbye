@@ -1,0 +1,157 @@
+編號：1
+檔案名稱：rush_utils.py
+目的：
+get_rush_summaries(shop, user=None)
+彙整截止前的搶購意向，計算每位使用者的總量/總金額與『達標時間』，並依商店設定（數量或金額優先）完成排序，輸出分配用摘要
+
+maybe_extend_rush(shop)
+防尾刀延長，結束前 ≤5 分鐘是觸發則自動＋5 分鐘（最多到 end_time+30 分），以資料庫鎖確保併發安全
+
+# import
+from collections import defaultdict, namedtuple
+from datetime import timedelta
+from django.db import transaction
+from django.db.models import Sum
+from django.utils import timezone
+
+from goodBuy_shop.models import Shop
+from goodBuy_order.models import PurchaseIntent  # IntentProduct 透過反向關聯取得
+
+# 取得多帶清單（只算截止前）＋預取關聯、穩定排序
+def get_rush_summaries(shop, user=None):
+
+    """
+    目的：彙整搶購意向供結算分配使用。
+    核心：抓取截止前(PurchaseIntent)資料，彙總每位使用者的各商品總量、總金額，
+          並計算「達標時間」（數量/金額各一）做為同值時的決勝依據；
+          依商店策略（3=數量優先，2=金額優先）完成排序。
+    輸入：shop（必填）、user（選填；若提供可回傳使用者端自我檢視資料）。
+    輸出：已排序的 summaries list[dict]：
+          { user, products[(product, qty)], total_quantity, total_price,
+            reached_qty_at, reached_amount_at, first_intent_at, user_id }
+    效能：select_related / prefetch_related 預抓關聯，避免 N+1。
+    """
+
+    cutoff = shop.end_time or timezone.now()
+
+    intents_qs = (
+        PurchaseIntent.objects
+        .filter(shop=shop, create_time__lte=cutoff)
+        .select_related('user')                       # FK 最佳化
+        .prefetch_related('intent_products__product') # 反向/多筆最佳化
+        .order_by('user_id', 'create_time', 'id')     # 穩定的時間序
+    )
+
+        # 彙總使用者帶多各商品總量、總量/總額、時序明細
+    per_user_products = defaultdict(lambda: defaultdict(int))  # uid -> pid -> qty
+    per_user_first_ts = {}                                     # uid -> 第一筆時間
+    per_user_qty = defaultdict(int)                            # uid -> 總數量
+    per_user_amount = defaultdict(lambda: 0)                   # uid -> 總金額
+    per_user_items = defaultdict(list)                         # uid -> 時序明細（達到此金額/數量時間）
+    per_user_obj = {}                                          # uid -> User 物件
+
+    for intent in intents_qs:
+        uid = intent.user_id
+        per_user_obj.setdefault(uid, intent.user)
+        ts = getattr(intent, 'created_at', intent.create_time)  # 以實際欄位為準
+        per_user_first_ts.setdefault(uid, ts)
+
+        for ip in intent.intent_products.all():
+            qty = int(ip.quantity or 0)
+            price = ip.price if getattr(ip, 'price', None) is not None else ip.product.price
+            per_user_products[uid][ip.product_id] += qty
+            per_user_qty[uid] += qty
+            per_user_amount[uid] += price * qty
+            per_user_items[uid].append((ts, ip.product, qty, price))
+
+         # 計算達標時間，總金額/數量相同時用來決定最終分配
+        reached_qty_at, reached_amount_at = {}, {}
+    for uid, items in per_user_items.items():
+        final_qty, final_amt = per_user_qty[uid], per_user_amount[uid]
+        c_qty = c_amt = 0
+        rq_ts = ra_ts = None
+
+        for created_at, _, qty, price in items:  # 已依時間序
+            if rq_ts is None:
+                c_qty += qty
+                if c_qty >= final_qty:
+                    rq_ts = created_at
+            if ra_ts is None:
+                c_amt += price * qty
+                if c_amt >= final_amt:
+                    ra_ts = created_at
+            if rq_ts and ra_ts:
+                break
+
+        reached_qty_at[uid] = rq_ts or per_user_first_ts[uid]
+        reached_amount_at[uid] = ra_ts or per_user_first_ts[uid]
+
+         # 組 summaries + 排序規則（數量/金額優先；同值看達標時間→首筆→user_id）
+    IntentProductRow = namedtuple('IntentProduct', 'product quantity')
+    summaries = []
+
+    for uid, pmap in per_user_products.items():
+        products = []
+        for pid, qty in pmap.items():
+            prod = next((it[1] for it in per_user_items[uid] if it[1].id == pid), None)
+            if prod:
+                products.append(IntentProductRow(prod, qty))
+
+        summaries.append({
+            'user': per_user_obj[uid],
+            'products': products,
+            'total_price': per_user_amount[uid],
+            'total_quantity': per_user_qty[uid],
+            'reached_qty_at': reached_qty_at[uid],
+            'reached_amount_at': reached_amount_at[uid],
+            'first_intent_at': per_user_first_ts[uid],
+            'user_id': uid,
+        })
+
+    if shop.purchase_priority_id == 3:  # 數量優先
+        summaries.sort(key=lambda s: (
+            -int(s['total_quantity']),
+            s['reached_qty_at'],
+            s['first_intent_at'],
+            s['user_id'],
+        ))
+    else:  # 金額優先（含 2）
+        summaries.sort(key=lambda s: (
+            -float(s['total_price']),
+            s['reached_amount_at'],
+            s['first_intent_at'],
+            s['user_id'],
+        ))
+
+    return summaries
+
+
+
+# 防尾刀機制
+def maybe_extend_rush(shop):
+
+    """
+    目的：防尾刀延長，維持公平性。
+    規則：剩餘時間 ≤ 5 分鐘時被呼叫則把 end_time 延長 5 分鐘；
+          但最長不得超過 end_time + 30 分鐘；若已結算則不處理。
+    併發：使用 transaction.atomic + select_for_update() 鎖住商店記錄，避免重複延長。
+    回傳：最新（可能已延長）的 shop 物件。
+    """
+
+    with transaction.atomic():
+        locked = Shop.objects.select_for_update().get(pk=shop.pk)
+        if not locked.end_time or getattr(locked, 'is_rush_settled', False):
+            return locked
+
+        now = timezone.now()
+        if (locked.end_time - now).total_seconds() > 300:
+            return locked
+
+        max_end = locked.start_time + timedelta(minutes=30)
+        proposed = locked.end_time + timedelta(minutes=5)
+        if proposed <= max_end:
+            locked.end_time = proposed
+            locked.save(update_fields=['end_time'])
+        return locked
+
+

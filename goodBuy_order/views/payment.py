@@ -5,9 +5,51 @@ from django.db.models import Sum, OuterRef, Subquery
 from django.shortcuts import redirect, render
 from django.db import transaction
 
-from ..forms import SecondSupplementForm
+from goodBuy_shop.models.shop_payment import ShopPayment
+from ..forms import OrderPaymentForm, SecondSupplementForm
 from utils import *
 from ..constants import *
+
+# -------------------------
+# 買家上傳付款憑證
+# -------------------------
+@login_required(login_url='login')
+@order_exists_required 
+def upload_payment_proof(request, order):
+
+    remit_accounts = (ShopPayment.objects
+                    .filter(shop=order.shop)
+                    .exclude(payment_account__payment__name__in=['取貨付款','貨到付款']))
+    print('remit_accounts ids=', list(remit_accounts.values_list('id', flat=True)))
+
+
+    if request.method == 'POST':
+        form = OrderPaymentForm(
+            request.POST,
+            request.FILES,
+            order=order,
+            remit_accounts=remit_accounts
+        )
+        if form.is_valid():
+            form.save()
+            # 訂單狀態更新
+            order.order_state_id = 2
+            order.save(update_fields=['order_state_id'])
+
+            messages.success(request, '匯款資訊已上傳，等待賣家確認')
+            return redirect('buyer')
+        else:
+            print('POST:', {k: request.POST.get(k) for k in ['payment_account','amount']})
+            print('form errors=', form.errors.as_json())
+    else:
+        form = OrderPaymentForm(order=order, remit_accounts=remit_accounts)
+
+    return render(request, 'upload_payment.html', {
+        'form': form,
+        'order': order,
+        'remit_accounts': remit_accounts,
+    })
+
 # -------------------------
 # 查看付款憑證 - 單筆
 # -------------------------

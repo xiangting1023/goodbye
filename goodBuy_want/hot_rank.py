@@ -8,7 +8,7 @@ import math, random   # 加入抽樣與抖動
 from goodBuy_want.models import (
     Want, WantFootprints, WantBack, WantRecommendationHistory
 )
-from goodBuy_want.recommend_config import HOT_WEIGHTS
+from goodBuy_want.recommend_config import HOT_WEIGHTS, NEW_DAYS
 from goodBuy_web.utils import get_blocked_user_ids
 
 
@@ -28,8 +28,7 @@ def get_hot_wants(
     user = getattr(request, 'user', None)
     now = timezone.now()
     recent = now - timedelta(days=days)
-    NEW_DAYS = 30
-    owner_mode = owner is not None  # ★
+    owner_mode = owner is not None
 
     # ---------------- filter ----------------
     qs = Want.objects.filter(permission__id=1)
@@ -248,35 +247,33 @@ def get_hot_wants(
     )
     qs_ordered = Want.objects.filter(id__in=final_picks).order_by(preserved)
 
-    # ★ owner 模式不寫歷史，避免影響首頁冷卻
-    if owner_mode:
-        return qs_ordered
+    # 主頁推薦模式才寫入推薦歷史，避免汙染首頁冷卻
+    if is_homefeed:
+        history = []
+        now_ts = timezone.now()
+        for w in qs_ordered:
+            payload = {
+                'want': w,
+                'recommended_at': now_ts,
+                'source': 'hot_rank',
+                'algorithm_version': 'v3',
+            }
+            if keyword:
+                payload['keyword'] = keyword
 
-    history = []
-    now_ts = timezone.now()
-    for w in qs_ordered:
-        payload = {
-            'want': w,
-            'recommended_at': now_ts,
-            'source': 'hot_rank',
-            'algorithm_version': 'v3',
-        }
-        if keyword:
-            payload['keyword'] = keyword
+            if user and user.is_authenticated:
+                payload['user'] = user
+            else:
+                if request and not getattr(getattr(request, 'session', None), 'session_key', None):
+                    request.session.save()
+                sess_key = getattr(request.session, 'session_key', None)
+                if not sess_key:
+                    continue
+                payload['session_key'] = sess_key
 
-        if user and user.is_authenticated:
-            payload['user'] = user
-        else:
-            if request and not getattr(getattr(request, 'session', None), 'session_key', None):
-                request.session.save()
-            sess_key = getattr(request.session, 'session_key', None)
-            if not sess_key:
-                continue
-            payload['session_key'] = sess_key
+            history.append(WantRecommendationHistory(**payload))
 
-        history.append(WantRecommendationHistory(**payload))
-
-    if history:
-        WantRecommendationHistory.objects.bulk_create(history, ignore_conflicts=True)
+        if history:
+            WantRecommendationHistory.objects.bulk_create(history, ignore_conflicts=True)
 
     return qs_ordered

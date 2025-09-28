@@ -1,0 +1,73 @@
+目的
+
+保序排序：依「抽樣後的 final_ids 順序」輸出資料，避免 DB 重新排序導致結果與抽樣不一致。
+
+歷史寫入：在非 owner 模式下紀錄推薦歷史，用於首頁冷卻/降權分析；owner 模式不寫，避免汙染首頁統計。
+
+
+
+shop版
+
+is_homefeed = not (owner or keyword or tag)
+# 保序
+preserved = Case(*[When(id=pk, then=pos) for pos, pk in enumerate(final_ids)], output_field=IntegerField())
+qs_ordered = Shop.objects.filter(id__in=final_ids).order_by(preserved)
+
+# 主頁推薦模式才寫入推薦歷史，避免汙染首頁冷卻；匿名用 session_key
+if is_homefeed:
+    if request and not getattr(getattr(request, 'session', None), 'session_key', None):
+        request.session.save()  # 產 session_key
+    now_ts = timezone.now()
+    ShopRecommendationHistory.objects.bulk_create(
+        [
+            ShopRecommendationHistory(
+                user=user if (user and user.is_authenticated) else None,
+                session_key=(getattr(request.session, 'session_key', None) if (not user or not user.is_authenticated) else None),
+                shop_id=s.id,
+                recommended_at=now_ts,
+                source=source_label,  # 'hot_rank' or 'personalized'
+                keyword=keyword or None,
+                algorithm_version='v3',
+            )
+            for s in qs_ordered
+        ],
+        ignore_conflicts=True,
+    )
+
+
+
+
+want版
+
+is_homefeed = not (owner or keyword or tag)
+# 保序
+preserved = Case(*[When(id=pk, then=pos) for pos, pk in enumerate(final_ids)], output_field=IntegerField())
+qs_ordered = Want.objects.filter(id__in=final_ids).order_by(preserved)
+
+# 主頁推薦模式才寫入推薦歷史，避免汙染首頁冷卻；匿名用 session_key
+if is_homefeed:
+    if request and not getattr(getattr(request, 'session', None), 'session_key', None):
+        request.session.save()
+    now_ts = timezone.now()
+    WantRecommendationHistory.objects.bulk_create(
+        [
+            WantRecommendationHistory(
+                user=user if (user and user.is_authenticated) else None,
+                session_key=(getattr(request.session, 'session_key', None) if (not user or not user.is_authenticated) else None),
+                want_id=w.id,
+                recommended_at=now_ts,
+                source=source_label,  # 'hot_rank' or 'personalized'
+                keyword=keyword or None,
+                algorithm_version='v3',
+            )
+            for w in qs_ordered
+        ],
+        ignore_conflicts=True,
+    )
+
+
+非主頁模式為什麼不寫歷史？
+
+用戶在某人主頁瀏覽或主動搜尋的內容不應影響「首頁冷卻」；寫入會導致該主頁的內容被首頁冷卻錯誤排除。
+
+規則：只有「首頁」的推薦才寫入歷史。

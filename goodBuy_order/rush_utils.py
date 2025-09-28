@@ -12,7 +12,7 @@ from django.db.models import Sum
 from django.utils import timezone
 
 def get_rush_summaries(shop, user=None):
-    # 只計算截止前的意向（若你的業務要算到 end_time）
+    # 只計算截止前的意向
     cutoff = shop.end_time or timezone.now()
 
     # 取意向，依 user / 時間 排序，避免不穩定
@@ -147,7 +147,7 @@ from django.db import transaction
 def maybe_extend_rush(shop):
     """
     防尾刀：剩餘 <= 5 分鐘時，最多把 end_time 以 5 分鐘為單位往後延，
-    但不超過 start_time + 30 分鐘上限。
+    但不超過 end_time + 30 分鐘上限。
     並發安全：以 select_for_update() 鎖住該 shop。
     """
     with transaction.atomic():

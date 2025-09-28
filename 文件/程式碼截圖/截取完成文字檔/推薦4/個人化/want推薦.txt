@@ -1,0 +1,163 @@
+目的：產生「個人化收物帖推薦」清單。對候選貼文蒐集多種使用者訊號（搜尋、瀏覽、回覆、新貼更新），以加權相加＋乘法倍率得到原始分數，加入抖動提升多樣性，並以Softmax 機率抽樣（含探索比例）與同作者上限做多樣性控制；支援 owner 模式（僅看某位使用者的收物帖的推薦）
+
+作法
+候選集：依 owner/keyword/tag 與可見性過濾，排除黑名單與自己貼文；首頁可套 cooldown_days 排除近期已推貼文
+
+打分：
+搜尋匹配：(tags+title+post_text) 命中 × PERSONAL_WEIGHTS['search_keyword']。
+看過相關貼文：(title+post_text) × viewed_related_multiplier（乘法縮放）。
+曾回覆貼文：tags × replied_related_bonus。
+新貼/近期更新：常數加分（recent_new_want_bonus，限 NEW_DAYS 內）。
+抖動：對每篇貼文加上 [-jitter, +jitter] 的可重現亂數。
+
+排序/抽樣：先依分數降序得 prelim →（非 owner 模式）限制同作者最多 5 篇 → 取前 200 做 Softmax(T=0.7) 機率抽樣（epsilon-greedy 混入 explore_ratio 均勻探索），不重複抽出 limit；不足則用熱門補齊。
+
+輸出/記錄：保序查詢回傳並寫入 WantRecommendationHistory(source='personalized', algorithm_version='v3')保存推薦記錄
+
+
+！！計算邏輯與公式是圖片，我打不出運算元！！
+
+
+# 候選與過濾（含 owner 模式、冷卻期）
+now = timezone.now()
+blocked_ids = set(get_blocked_user_ids(user))
+owner_mode = owner is not None
+
+if owner_mode:
+    # 自己看自己的貼文含私密；他人只看公開
+    qs = Want.objects.filter(user=owner, permission__id__in=([1,2] if owner==user else [1]))
+    qs = qs.exclude(user_id__in=blocked_ids)
+else:
+    qs = (Want.objects
+          .filter(permission__id=1)
+          .filter(Q(update__gte=now - timedelta(days=NEW_DAYS)))
+          .exclude(user_id__in=blocked_ids).exclude(user=user))
+
+if keyword:
+    qs = qs.filter(Q(title__icontains=keyword) | Q(post_text__icontains=keyword) |
+                   Q(wanttag__tag__name__icontains=keyword) | Q(user__username__icontains=keyword))
+if tag:
+    qs = qs.filter(wanttag__tag=tag)
+qs = qs.distinct()
+
+# 首頁冷卻：排除最近 N 日已推薦
+is_homefeed = not (keyword or owner or tag)
+if is_homefeed and cooldown_days > 0:
+    cooled = set(WantRecommendationHistory.objects.filter(
+        user=user, recommended_at__gte=now - timedelta(days=cooldown_days)
+    ).values_list('want_id', flat=True))
+    qs = qs.exclude(id__in=cooled)
+
+# 打分（加權＋乘法＋抖動）
+scores = {wid: 0.0 for wid in qs.values_list('id', flat=True)}
+
+# 搜尋匹配
+recent_kw = list(SearchHistory.objects
+                 .filter(user=user, searched_at__gte=now - timedelta(days=SEARCH_HISTORY_DAYS))
+                 .values_list('keyword', flat=True))
+if keyword: recent_kw.append(keyword)
+recent_kw = [kw for kw in recent_kw if kw]
+
+if recent_kw:
+    kw_base = (KEYWORD_SCORES['title'] + KEYWORD_SCORES['post_text'] + KEYWORD_SCORES['tags']) \
+              * PERSONAL_WEIGHTS['search_keyword']
+    for kw in recent_kw:
+        for wid in qs.filter(Q(title__icontains=kw) | Q(post_text__icontains=kw) |
+                             Q(wanttag__tag__name__icontains=kw) | Q(user__username__icontains=kw)
+                            ).values_list('id', flat=True):
+            scores[wid] += kw_base
+
+# 看過相關（乘法倍率）
+viewed_ids = set(WantFootprints.objects
+                 .filter(user=user, date__gte=now - timedelta(days=VIEW_DAYS),
+                         want_id__in=scores.keys())
+                 .values_list('want_id', flat=True))
+if viewed_ids:
+    add_viewed = (KEYWORD_SCORES['title'] + KEYWORD_SCORES['post_text']) \
+                 * PERSONAL_WEIGHTS['viewed_related_multiplier']
+    for wid in viewed_ids: scores[wid] += add_viewed
+
+# 曾回覆 + 新貼加分
+replied_ids = set(WantBack.objects
+                  .filter(user=user, date__gte=now - timedelta(days=REPLY_DAYS),
+                          want_id__in=scores.keys())
+                  .values_list('want_id', flat=True))
+for wid in replied_ids:
+    scores[wid] += KEYWORD_SCORES['tags'] * PERSONAL_WEIGHTS['replied_related_bonus']
+
+eps = float(PERSONAL_WEIGHTS.get('recent_new_want_bonus', 0.01)) or 0.01
+recent_ids = set(Want.objects.filter(id__in=scores.keys(),
+                                     update__gte=now - timedelta(days=NEW_DAYS))
+                           .values_list('id', flat=True))
+for wid in recent_ids: scores[wid] += eps
+
+# （可選）近 N 日重推 → 分數降權（僅在 cooldown 未啟用時）
+if (cooldown_days or 0) <= 0 and RECOMMENDED_WANT_WEIGHT_MULTIPLIER < 1.0:
+    cutoff = now - timedelta(days=RECENT_RECO_DAYS)
+    recent_rec_ids = set(WantRecommendationHistory.objects
+                         .filter(user=user, recommended_at__gte=cutoff)
+                         .values_list('want_id', flat=True))  # ← 注意：是 want_id
+    for wid in recent_rec_ids:
+        if wid in scores:
+            scores[wid] *= RECOMMENDED_WANT_WEIGHT_MULTIPLIER
+
+# 抖動（依 user+時間種子）
+seed = f"{user.id}-{now.strftime('%Y%m%d%H' if seed_scope=='hour' else '%Y%m%d')}"
+rng = random.Random(seed)
+for wid in scores: scores[wid] += rng.uniform(-jitter, jitter)
+
+# 多樣性與抽樣（Softmax + ε-greedy）
+prelim = sorted(scores.keys(), key=lambda wid: scores[wid], reverse=True)
+
+if owner_mode:
+    final_ids = prelim
+else:
+    # 同作者最多 5 篇
+    author_by = dict(Want.objects.filter(id__in=prelim).values_list('id', 'user_id'))
+    cap, cnt, diverse = 5, defaultdict(int), []
+    for wid in prelim:
+        aid = author_by.get(wid)
+        if cnt[aid] < cap: diverse.append(wid); cnt[aid] += 1
+
+    if exclude_seen: diverse = [wid for wid in diverse if wid not in viewed_ids]
+
+    # 取前 200 用 softmax 抽樣（不重複）
+    pool = diverse[:200]; vals = [scores[w] for w in pool]
+    T = 0.7; vmax = max(vals) if vals else 0.0
+    probs = [math.exp((v - vmax)/T) for v in vals]; s = sum(probs) or 1.0
+    probs = [p/s for p in probs]
+
+    if 0 < explore_ratio < 1:
+        uni = 1.0/len(pool); probs = [(1-explore_ratio)*p + explore_ratio*uni for p in probs]
+
+    pick_seed = f"pick-{user.id}-{now.strftime('%Y%m%d%H' if seed_scope=='hour' else '%Y%m%d')}"
+    rng = random.Random(pick_seed)
+    picked, cand, w = [], pool[:], probs[:]
+    L = limit or 20
+    for _ in range(min(L, len(cand))):
+        tot = sum(w)
+        idx = rng.randrange(len(cand)) if tot <= 0 else next(
+            i for i, acc in enumerate([sum(w[:i+1]) for i in range(len(w))]) if rng.uniform(0, tot) <= acc
+        )
+        picked.append(cand.pop(idx)); w.pop(idx)
+
+    # 不足則熱門補齊
+    if len(picked) < L and is_homefeed:
+        need = L - len(picked); already = set(picked)
+        hot = (get_hot_wants(request=request).exclude(id__in=already)
+               .values_list('id', flat=True))
+        picked += list(hot)[:need]
+
+    final_ids = picked
+
+# 保序輸出與寫歷史
+preserved = Case(*[When(id=pk, then=pos) for pos, pk in enumerate(final_ids)], output_field=IntegerField())
+qs_ordered = Want.objects.filter(id__in=final_ids).order_by(preserved)
+
+WantRecommendationHistory.objects.bulk_create([
+    WantRecommendationHistory(user=user, want=w, recommended_at=timezone.now(),
+                              source='personalized', keyword=keyword or None, algorithm_version='v3')
+    for w in qs_ordered
+], ignore_conflicts=True)
+
+return qs_ordered
