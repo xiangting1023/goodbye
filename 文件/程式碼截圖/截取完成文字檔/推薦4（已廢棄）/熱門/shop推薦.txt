@@ -1,0 +1,161 @@
+# 候選與冷卻
+now = timezone.now()
+recent = now - timedelta(days=days)
+user = getattr(request, 'user', None)
+is_auth = bool(user and getattr(user, "is_authenticated", False))
+blocked_ids = set(get_blocked_user_ids(user)) if is_auth else set()
+
+owner_mode = owner is not None
+is_homefeed = (not owner_mode) and (not keyword) and (not tag)  # ★ 只在首頁流寫歷史/冷卻
+
+if owner_mode:
+    # 自己看自己的店含私密；他人只看公開
+    if is_auth and owner == user:
+        qs = Shop.objects.filter(owner=owner, permission_id__in=[1, 2])
+    else:
+        qs = Shop.objects.filter(owner=owner, permission_id=1)
+    if blocked_ids:
+        qs = qs.exclude(owner_id__in=blocked_ids)
+    qs = qs.distinct()
+else:
+    qs = Shop.objects.filter(permission_id=1)
+    if blocked_ids:
+        qs = qs.exclude(owner_id__in=blocked_ids)
+    if is_auth:
+        qs = qs.exclude(owner_id=user.id)  # ★ 匿名不要排自己；登入用 user.id
+
+    # keyword / tag
+    if keyword:
+        qs = qs.filter(
+            Q(name__icontains=keyword) |
+            Q(introduce__icontains=keyword) |
+            Q(shoptag__tag__name__icontains=keyword) |
+            Q(owner__username__icontains=keyword)
+        )
+    if tag:
+        qs = qs.filter(shoptag__tag=tag)
+
+    # 進行中或近期更新
+    qs = qs.filter(Q(start_time__lte=now, end_time__gte=now) |
+                   Q(update__gte=now - timedelta(days=NEW_DAYS)))
+
+    qs = qs.distinct()
+
+    # 首頁冷卻（含匿名 session）
+    if is_homefeed and cooldown_days > 0:
+        # 你自己的實作：要記得裡面有用 session_key 時先 save 一下
+        ids_to_exclude = fetch_recent_reco_ids_for_user_or_session(request, cooldown_days)
+        remain = qs.exclude(id__in=set(ids_to_exclude))
+        qs = fallback_if_too_strict(qs, remain)  # 12 小時 / 30% / 還原
+
+if not qs.exists():
+    return qs.none()
+
+# 熱度打分
+candidate_ids = list(qs.values_list('id', flat=True))
+scores = {sid: 0.0 for sid in candidate_ids}
+
+# 瀏覽
+for row in (ShopFootprints.objects
+            .filter(date__gte=recent, shop_id__in=candidate_ids)
+            .values('shop_id').annotate(c=Count('id'))):
+    sid = row['shop_id']
+    scores[sid] += HOT_WEIGHTS.get('recent_views', 0) * row['c']
+
+# 成交（有效訂單：state 4、5）
+for row in (ProductOrder.objects
+            .filter(order__date__gte=recent,
+                    order__order_state__id__in=[4, 5],
+                    product__shop_id__in=candidate_ids)
+            .values('product__shop_id').annotate(c=Count('id'))):
+    sid = row['product__shop_id']
+    scores[sid] += HOT_WEIGHTS.get('recent_sales', 0) * row['c']
+
+# 新店加成（有設定才查）
+_new_bonus = HOT_WEIGHTS.get('new_shop_bonus', 0)
+if _new_bonus:
+    recent_ids = list(
+        Shop.objects.filter(id__in=candidate_ids,
+                            update__gte=now - timedelta(days=NEW_DAYS))
+        .values_list('id', flat=True)
+    )
+    for sid in recent_ids:
+        scores[sid] += _new_bonus
+
+# 輕微抖動（依 user/session + 時間種子）
+if not (is_auth) and request and not getattr(getattr(request, 'session', None), 'session_key', None):
+    request.session.save()  # ★ 匿名確保拿得到 session_key
+seed_id = f"user-{user.id}" if is_auth else f"sess-{getattr(request.session, 'session_key', 'anon')}"
+_fmt = {'minute': '%Y%m%d%H%M', 'hour': '%Y%m%d%H', 'day': '%Y%m%d'}.get(seed_scope, '%Y%m%d')
+time_key = now.strftime(_fmt)
+rnd = random.Random(f"hot-jitter|{seed_id}|{time_key}|o={getattr(owner,'id',owner)}|k={bool(keyword)}|t={getattr(tag,'id',tag)}")
+for sid in scores:
+    scores[sid] += rnd.uniform(-jitter, jitter)
+
+# 多樣性與抽樣
+prelim = sorted(candidate_ids, key=lambda sid: scores[sid], reverse=True)
+
+if owner_mode:
+    final_ids = prelim[: (limit or len(prelim))]
+else:
+    # 同 owner 最多 K=5
+    owner_by = dict(Shop.objects.filter(id__in=prelim).values_list('id', 'owner_id'))
+    cap, cnt, pool = 5, defaultdict(int), []
+    for sid in prelim:
+        oid = owner_by.get(sid)
+        if cnt[oid] < cap:
+            pool.append(sid); cnt[oid] += 1
+        if limit and len(pool) >= (limit or 20) * 10:
+            break
+
+    # Softmax 抽樣 + 探索（沒有保底探索池的版本；要加的話我可以給你塊可貼段）
+    def softmax(vals, T=0.7):
+        if not vals: return []
+        vmax = max(vals); exps = [math.exp((v - vmax)/T) for v in vals]
+        s = sum(exps) or 1.0; return [x/s for x in exps]
+
+    probs = softmax([scores[sid] for sid in pool])
+    if pool and 0 < explore_ratio < 1:
+        uni = 1.0/len(pool); probs = [(1-explore_ratio)*p + explore_ratio*uni for p in probs]
+
+    rng = random.Random(f"hot-pick|{seed_id}|{time_key}|o=None|k={bool(keyword)}|t={getattr(tag,'id',tag)}")
+    need, picked, cand, w = (limit or 20), [], pool[:], probs[:]
+    for _ in range(min(need, len(cand))):
+        tot = sum(w)
+        if tot <= 0:
+            idx = rng.randrange(len(cand))
+        else:
+            r = rng.uniform(0, tot)
+            acc = 0.0
+            idx = 0
+            for i, ww in enumerate(w):
+                acc += ww
+                if r <= acc:
+                    idx = i
+                    break
+        picked.append(cand.pop(idx)); w.pop(idx)
+    final_ids = picked if picked else prelim[: (limit or 20)]
+
+# 保序與寫歷史
+preserved = Case(*[When(id=pk, then=pos) for pos, pk in enumerate(final_ids)], output_field=IntegerField())
+qs_ordered = Shop.objects.filter(id__in=final_ids).order_by(preserved)
+
+if is_homefeed:  # ★ 只首頁流才寫歷史，避免汙染冷卻
+    now_ts = timezone.now()
+    payloads = []
+    for s in qs_ordered:
+        payload = dict(shop=s, recommended_at=now_ts, source='hot_rank', algorithm_version='v3')
+        if keyword: payload['keyword'] = keyword
+        if is_auth:
+            payload['user'] = user
+        else:
+            if request and not getattr(getattr(request, 'session', None), 'session_key', None):
+                request.session.save()
+            sess_key = getattr(request.session, 'session_key', None)
+            if not sess_key: continue
+            payload['session_key'] = sess_key
+        payloads.append(ShopRecommendationHistory(**payload))
+    if payloads:
+        ShopRecommendationHistory.objects.bulk_create(payloads, ignore_conflicts=True)
+
+return qs_ordered

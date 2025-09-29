@@ -1,0 +1,54 @@
+# goodBuy_shop/weighting.py
+from collections import defaultdict
+from datetime import timedelta
+from django.db.models import Q, Count
+from django.utils import timezone
+
+from goodBuy_web.models import SearchHistory
+from goodBuy_shop.models import Shop, ShopFootprints  # 可依需要再加 Collect/Order 等
+# 你的 config：個人化比例/權重
+PERSONAL_W = dict(search=5, viewed=0.8, traded=1)   # 示例
+BLEND_ALPHA = 0.6  # personal:hot = 0.6:0.4
+
+def personal_rank_shops_clip(hot_ids, user, days=14, L=20):
+    now, since = timezone.now(), timezone.now() - timedelta(days=days)
+    if not user or not getattr(user, 'is_authenticated', False):  # 匿名：直接回傳 hot
+        return list(hot_ids)[:L]
+
+    P = defaultdict(float)
+
+    # 搜尋關聯（keywords → tag/name/intro 命中加分）
+    keys = list(SearchHistory.objects.filter(user=user, searched_at__gte=since)
+                .values_list('keyword', flat=True)[:20])
+    if keys:
+        for sid in Shop.objects.filter(permission_id=1).filter(
+            Q(name__iregex="|".join(keys)) | Q(introduce__iregex="|".join(keys)) | Q(shoptag__tag__name__iregex="|".join(keys))
+        ).values_list('id', flat=True):
+            P[sid] += PERSONAL_W['search']
+
+    # 瀏覽關聯（近期看過的店）
+    for r in (ShopFootprints.objects.filter(user=user, date__gte=since)
+              .values('shop_id').annotate(c=Count('id'))):
+        P[r['shop_id']] += PERSONAL_W['viewed'] * r['c']
+
+    # 融合（blend）與截取
+    # 將 hot 名單映射為 hot 分數（順位高者分數高，簡化為倒序排名）
+    hot_rank = {sid: (len(hot_ids)-i) for i, sid in enumerate(hot_ids)}
+    final = sorted(set(hot_ids) | set(P.keys()),
+                   key=lambda sid: BLEND_ALPHA*P.get(sid,0.0) + (1-BLEND_ALPHA)*hot_rank.get(sid,0), reverse=True)
+    return final[:L]
+
+
+
+Delta（Shop → Want 要替換的點）
+# 模型：
+# Shop / ShopFootprints → Want / WantFootprints
+
+# 搜尋對應欄位：
+# name/introduce/shoptag__tag__name → title/post_text/wanttag__tag__name
+
+# 其他個人化訊號（若有）：
+# 購買/交易加成（Shop） → 回覆關聯加成（WantBack）等
+# hot_ids 來源改為「Want 的 hot rank 結果」
+
+

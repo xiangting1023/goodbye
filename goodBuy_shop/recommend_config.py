@@ -35,9 +35,9 @@ RECOMMENDED_SHOP_WEIGHT_MULTIPLIER = 1.0  # 若已在近 7 天內推薦，則推
 # -------------------------
 # 查詢時間控制
 # -------------------------
-SEARCH_HISTORY_DAYS = 3
+SEARCH_HISTORY_DAYS = 7
 COLLECT_DAYS = 14
 VIEW_DAYS = 14
 ORDER_DAYS = 90
-NEW_DAYS = 3 
+NEW_DAYS = 60
 RECENT_RECO_DAYS = 7

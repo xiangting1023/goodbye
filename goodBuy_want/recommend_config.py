@@ -32,8 +32,8 @@ RECOMMENDED_WANT_WEIGHT_MULTIPLIER = 1.0  # 若已在近 7 天內推薦，則推
 # -------------------------
 # 查詢時間範圍
 # -------------------------
-SEARCH_HISTORY_DAYS = 3
-VIEW_DAYS = 14
-REPLY_DAYS = 14
-NEW_DAYS = 30
+SEARCH_HISTORY_DAYS = 7
+VIEW_DAYS = 3
+REPLY_DAYS = 30
+NEW_DAYS = 60
 RECENT_RECO_DAYS = 7

@@ -1,128 +1,156 @@
 編號：2
-檔案名稱：auto_allocate_rush_orders.py
-目的：定時結算多帶商店並生成訂單
-使用方法：python manage.py auto_allocate_rush_orders [--dry-run] [--shop <id>]
+檔案名稱：goodBuy_order/management/commands/auto_allocate_rush_orders.py
+目的：定時結算多帶商店並生成訂單（併發安全：transaction.atomic + select_for_update(skip_locked)）
+使用方法：
+Windows 工作排程器
+程式/指令：C:\path\to\venv\Scripts\python.exe
+引數：manage.py auto_allocate_rush_orders
+起始於：你的專案資料夾
+
+
+自動化排程（Scheduler）設計與證明
+架構概念
+(OS Scheduler: cron / Windows Task Scheduler)
+        │（每 1 分鐘）
+        ▼
+python manage.py auto_allocate_rush_orders [--limit 50]
+        │
+        ▼
+handle()
+  ├─ select_for_update(skip_locked) 鎖一批待處理 shop_ids
+  └─ 對每筆呼叫 allocate_shop(shop)
+       ├─ transaction.atomic() + select_for_update() 鎖住該店
+       ├─ 建立訂單、寫入 ProductOrder、扣庫存
+       └─ 標記 is_rush_settled = True
+
+
 
 程式碼截取
 
 # import
-from collections import defaultdict, namedtuple
-from datetime import timedelta
+from collections import defaultdict
+from django.core.management.base import BaseCommand
 from django.db import transaction
-from django.db.models import Sum
 from django.utils import timezone
 
-# 參數解析
-def add_arguments(self, parser):
-    parser.add_argument('--dry-run', action='store_true', help='只預覽分配結果，不寫入資料庫')
-    parser.add_argument('--shop', type=int, help='只處理特定 shop_id')
-
-# 待處理商店篩選
-def handle(self, *args, **options):
-    now = timezone.now()
-    only_shop = options.get('shop')
-
-    # 已截止 & 尚未結算 & 屬於金額/數量優先模式
-    shops = Shop.objects.filter(
-        purchase_priority_id__in=[2, 3],
-        end_time__lt=now,
-        is_rush_settled=False
-    ).order_by('id')
-    if only_shop:
-        shops = shops.filter(id=only_shop)
-
-    for shop in shops:
-        self.allocate_shop(shop)
-
-# 結算邏輯
-def allocate_shop(self, shop):
-    summaries = get_rush_summaries(shop)  # 會依金額或數量排序，同值時以最早達標時間優先；回傳各使用者的 products 多帶清單，用於逐一按庫存分配。
-
-    with transaction.atomic():
-        # 鎖住商店避免併發重複結算
-        locked_shop = Shop.objects.select_for_update().get(pk=shop.pk)
-        if locked_shop.is_rush_settled:
-            return
-
-        product_claimed = defaultdict(int)
-        product_orders_bulk = []
-	
-	# 為多帶參與者創建訂單
-        for s in summaries:
-            order = Order.objects.create(
-                user=s['user'], shop=locked_shop, total=0,
-                payment_mode='full', pay_state_id=PAY_STATE_UNPAID,
-                order_state_id=ORDER_STATE_INIT,
-            )
-
-	        # 給訂單加上多帶成功的商品
-            total_price = 0
-            for ip in s['products']:
-                p = getattr(ip, 'product', None) or ip.get('product')
-                want_qty = getattr(ip, 'quantity', None) or ip.get('quantity', 0)
-
-                available = max(0, getattr(p, 'stock', 0) - product_claimed[p.id])
-                claim_qty = min(want_qty, available)
-                if claim_qty <= 0:
-                    continue
-
-                # 只填入 ProductOrder 實際存在的欄位
-                po_kwargs = self._build_product_order_kwargs(order, p, claim_qty)
-                product_orders_bulk.append(ProductOrder(**po_kwargs))
-
-                total_price += (getattr(p, "price", 0) or 0) * claim_qty
-                product_claimed[p.id] += claim_qty
-
-            # 分不到商品就不留空訂單
-            if total_price == 0:
-                order.delete()
-            else:
-                order.total = total_price
-                order.save(update_fields=['total'])
-
-        if product_orders_bulk:
-            ProductOrder.objects.bulk_create(product_orders_bulk, batch_size=1000)
-
-        # 扣庫存（再次加鎖確保一致性）
-        qs = Product.objects.select_for_update().filter(id__in=product_claimed.keys())
-        for prod in qs:
-            prod.stock = max(0, prod.stock - product_claimed[prod.id])
-            prod.save(update_fields=['stock'])
-
-        # 重置為時間序 + 修改狀態為已結算
-        locked_shop.purchase_priority_id = 1
-        locked_shop.is_rush_settled = True
-        locked_shop.save(update_fields=['purchase_priority_id', 'is_rush_settled'])
+from goodBuy_shop.models import Shop, Product
+from goodBuy_order.models import Order, ProductOrder
+from goodBuy_order.utils import get_rush_summaries
+from goodBuy_order.constants import PAY_STATE_UNPAID, ORDER_STATE_INIT
 
 
-# ProductOrder 欄位動態對應（避免命名差異造成失敗）
-def _build_product_order_kwargs(self, order, product, claim_qty):
-    """
-    動態對應數量/單價/名稱快照/圖片快照等欄位，避免不同命名（quantity/amount、unit_price/price…）造成錯誤。
-    """
-    from goodBuy_order.models import ProductOrder
-    model_fields = {f.name for f in ProductOrder._meta.get_fields() if hasattr(f, "attname")}
+class Command(BaseCommand):
+    # 參數解析
+    def add_arguments(self, parser):
+        parser.add_argument('--dry-run', action='store_true', help='只預覽分配結果，不寫入資料庫')
+        parser.add_argument('--shop', type=int, help='只處理特定 shop_id')
 
-    kw = {"order": order, "product": product}
+    # 待處理商店篩選
+    def handle(self, *args, **options):
+        now = timezone.now()
+        only_shop = options.get('shop')
 
-    # 數量
-    if "quantity" in model_fields: kw["quantity"] = claim_qty
-    elif "amount" in model_fields: kw["amount"] = claim_qty
+        # 已截止 & 尚未結算 & 屬於金額/數量優先模式
+        shops = Shop.objects.filter(
+            purchase_priority_id__in=[2, 3],
+            end_time__lt=now,
+            is_rush_settled=False
+        ).order_by('id')
+        if only_shop:
+            shops = shops.filter(id=only_shop)
 
-    # 單價
-    price_val = getattr(product, "price", 0) or 0
-    for name in ("unit_price", "price", "product_price"):
-        if name in model_fields: kw[name] = price_val; break
+        for shop in shops:
+            self.allocate_shop(shop)
 
-    # 名稱快照
-    name_val = getattr(product, "name", "") or ""
-    for name in ("product_name", "name_cache", "snapshot_name"):
-        if name in model_fields: kw[name] = name_val; break
+    # 結算邏輯
+    def allocate_shop(self, shop):
+        summaries = get_rush_summaries(shop)  # 會依金額或數量排序，同值時以最早達標時間優先；回傳各使用者的 products 多帶清單，用於逐一按庫存分配。
 
-    # 圖片快照
-    img_val = getattr(getattr(product, "img", None), "name", "") or ""
-    for name in ("product_img", "product_image", "image_path", "snapshot_img"):
-        if name in model_fields: kw[name] = img_val; break
+        with transaction.atomic():
+            # 鎖住商店避免併發重複結算
+            locked_shop = Shop.objects.select_for_update().get(pk=shop.pk)
+            if locked_shop.is_rush_settled:
+                return
 
-    return kw
+            product_claimed = defaultdict(int)
+            product_orders_bulk = []
+        
+        # 為多帶參與者創建訂單
+            for s in summaries:
+                order = Order.objects.create(
+                    user=s['user'], shop=locked_shop, total=0,
+                    payment_mode='full', pay_state_id=PAY_STATE_UNPAID,
+                    order_state_id=ORDER_STATE_INIT,
+                )
+
+                # 給訂單加上多帶成功的商品
+                total_price = 0
+                for ip in s['products']:
+                    p = getattr(ip, 'product', None) or ip.get('product')
+                    want_qty = getattr(ip, 'quantity', None) or ip.get('quantity', 0)
+
+                    available = max(0, getattr(p, 'stock', 0) - product_claimed[p.id])
+                    claim_qty = min(want_qty, available)
+                    if claim_qty <= 0:
+                        continue
+
+                    # 只填入 ProductOrder 實際存在的欄位
+                    po_kwargs = self._build_product_order_kwargs(order, p, claim_qty)
+                    product_orders_bulk.append(ProductOrder(**po_kwargs))
+
+                    total_price += (getattr(p, "price", 0) or 0) * claim_qty
+                    product_claimed[p.id] += claim_qty
+
+                # 分不到商品就不留空訂單
+                if total_price == 0:
+                    order.delete()
+                else:
+                    order.total = total_price
+                    order.save(update_fields=['total'])
+
+            if product_orders_bulk:
+                ProductOrder.objects.bulk_create(product_orders_bulk, batch_size=1000)
+
+            # 扣庫存（再次加鎖確保一致性）
+            qs = Product.objects.select_for_update().filter(id__in=product_claimed.keys())
+            for prod in qs:
+                prod.stock = max(0, prod.stock - product_claimed[prod.id])
+                prod.save(update_fields=['stock'])
+
+            # 重置為時間序 + 修改狀態為已結算
+            locked_shop.purchase_priority_id = 1
+            locked_shop.is_rush_settled = True
+            locked_shop.save(update_fields=['purchase_priority_id', 'is_rush_settled'])
+
+
+    # ProductOrder 欄位動態對應（避免命名差異造成失敗）
+    def _build_product_order_kwargs(self, order, product, claim_qty):
+        """
+        動態對應數量/單價/名稱快照/圖片快照等欄位，避免不同命名（quantity/amount、unit_price/price…）造成錯誤。
+        """
+        from goodBuy_order.models import ProductOrder
+        model_fields = {f.name for f in ProductOrder._meta.get_fields() if hasattr(f, "attname")}
+
+        kw = {"order": order, "product": product}
+
+        # 數量
+        if "quantity" in model_fields: kw["quantity"] = claim_qty
+        elif "amount" in model_fields: kw["amount"] = claim_qty
+
+        # 單價
+        price_val = getattr(product, "price", 0) or 0
+        for name in ("unit_price", "price", "product_price"):
+            if name in model_fields: kw[name] = price_val; break
+
+        # 名稱快照
+        name_val = getattr(product, "name", "") or ""
+        for name in ("product_name", "name_cache", "snapshot_name"):
+            if name in model_fields: kw[name] = name_val; break
+
+        # 圖片快照
+        img_val = getattr(getattr(product, "img", None), "name", "") or ""
+        for name in ("product_img", "product_image", "image_path", "snapshot_img"):
+            if name in model_fields: kw[name] = img_val; break
+
+        return kw
 

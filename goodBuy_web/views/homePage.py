@@ -13,8 +13,7 @@ from goodBuy_tag.models import *
 
 from itertools import chain
 from operator import attrgetter
-from django.db.models import Q , Min, Max, Prefetch
-from goodBuy_shop.models import Shop, ShopImg
+from goodBuy_shop.models import Shop
 
 def homePage(request):
     # 搜尋關鍵字

@@ -5,6 +5,7 @@ from django.db.models import Q, Case, When, IntegerField
 import math
 import random
 
+from goodBuy_shop.models.shop_recommendation_history import ShopRecommendationHistory
 from goodBuy_want.models import (
     Want, WantFootprints, WantBack, WantRecommendationHistory
 )
@@ -27,10 +28,10 @@ def personalized_want_recommendation(
     exclude_seen=False,
     limit=20,
     *,
-    cooldown_days=0,    # 測資少先壓低冷卻期避免無法刷新
+    cooldown_days=0,
     explore_ratio=0.5,
     jitter=0.05,
-    seed_scope="hour"
+    seed_scope="hour"  # 也可傳 "minute" 讓刷新更有變化
 ):
     user = getattr(request, 'user', None)
     if not user or not user.is_authenticated:
@@ -40,28 +41,23 @@ def personalized_want_recommendation(
     blocked_ids = set(get_blocked_user_ids(user))
 
     # ---------------- filter ----------------
-    owner_mode = owner is not None 
+    owner_mode = owner is not None
 
     if owner_mode:
-        # ★ 指定 owner：只調整候選集合，其他流程完全保留
+        # ★ 指定 owner：只調整候選集合，其他流程保留
         if user and owner == user:
             # 自己看：公開 + 僅自己可見
             qs = Want.objects.filter(user=owner, permission__id__in=[1, 2])
         else:
             # 看別人：只公開
             qs = Want.objects.filter(user=owner, permission__id=1)
-
-        # 黑名單仍生效（若封鎖該作者會變空集合）
-        qs = qs.exclude(user_id__in=blocked_ids)
-
-        # 不套時間窗（避免 0 分貼文被刷掉）
+        qs = qs.exclude(user_id__in=blocked_ids)  # 黑名單
     else:
-        # 原本的一般個人化流：公開 + 最近更新
-        qs = Want.objects.filter(permission__id=1).filter(
-            Q(update__gte=now - timedelta(days=NEW_DAYS))
-        )
-        # 黑名單 / 自己
-        qs = qs.exclude(user_id__in=blocked_ids).exclude(user=user)
+        # 一般個人化：公開 + 最近更新；排黑名單 + 排自己
+        qs = (Want.objects.filter(permission__id=1)
+              .filter(Q(update__gte=now - timedelta(days=NEW_DAYS)))
+              .exclude(user_id__in=blocked_ids)
+              .exclude(user=user))
 
     # 關鍵字 / 標籤
     if keyword:
@@ -76,17 +72,14 @@ def personalized_want_recommendation(
 
     qs = qs.distinct()
 
-    # 原規則：不是「自己看自己」時加公開+時間窗
-    # ★ 有 owner 時不再額外套時間窗（上面已處理）
-    if not (owner and user and owner == user) and not owner_mode:
-        qs = qs.filter(
-            Q(permission__id=1) & Q(update__gte=now - timedelta(days=NEW_DAYS))
-        )
+    # 非「自己看自己」時再保險套一次時間窗（owner_mode 不套，避免刷掉 0 分貼文）
+    if not owner_mode:
+        qs = qs.filter(Q(permission__id=1) & Q(update__gte=now - timedelta(days=NEW_DAYS)))
 
     if not qs.exists():
-        return qs.none()
+        return Want.objects.none()
 
-    # 首頁冷卻（owner_mode 下 is_homefeed 為 False，不會觸發）
+    # ---------------- 首頁冷卻 ----------------
     is_homefeed = not (keyword or owner or tag)
     if is_homefeed and cooldown_days and cooldown_days > 0:
         cooled = set(
@@ -118,15 +111,16 @@ def personalized_want_recommendation(
     if recent_searches:
         kw_base = (KEYWORD_SCORES['title'] + KEYWORD_SCORES['post_text'] + KEYWORD_SCORES['tags']) \
                   * PERSONAL_WEIGHTS['search_keyword']
+        hit_ids = set()
         for kw in recent_searches:
-            hit_ids = set(qs.filter(
+            hit_ids |= set(qs.filter(
                 Q(title__icontains=kw) |
                 Q(post_text__icontains=kw) |
                 Q(wanttag__tag__name__icontains=kw) |
                 Q(user__username__icontains=kw)
             ).values_list('id', flat=True))
-            for wid in hit_ids:
-                scores[wid] += kw_base
+        for wid in hit_ids:
+            scores[wid] += kw_base
 
     viewed_ids = set(
         WantFootprints.objects.filter(
@@ -153,50 +147,51 @@ def personalized_want_recommendation(
         for wid in replied_ids:
             scores[wid] += add_reply
 
+    # 最近更新加分（沿用設定檔 recent_new_want_bonus）
     EPS = float(PERSONAL_WEIGHTS.get('recent_new_want_bonus', 0.01)) or 0.01
-    recent_new_ids = set(
-        Want.objects.filter(id__in=candidate_ids, update__gte=now - timedelta(days=NEW_DAYS))
-        .values_list('id', flat=True)
-    )
-    for wid in recent_new_ids:
-        scores[wid] += EPS
+    if EPS:
+        recent_new_ids = set(
+            Want.objects.filter(id__in=candidate_ids, update__gte=now - timedelta(days=NEW_DAYS))
+            .values_list('id', flat=True)
+        )
+        for wid in recent_new_ids:
+            scores[wid] += EPS
 
-    recent_reco = set(
+    # 近期已推薦清單
+    recent_reco_ids = set(
         WantRecommendationHistory.objects.filter(
-            user=user, recommended_at__gte=now - timedelta(days=7)
+            user=user, recommended_at__gte=now - timedelta(days=RECENT_RECO_DAYS)
         ).values_list('want_id', flat=True)
     )
-    for wid in list(scores.keys()):
-        if wid in recent_reco:
-            scores[wid] *= RECOMMENDED_WANT_WEIGHT_MULTIPLIER
 
-    # 抖動
+    # 新穎加分：未看過、未回覆、近期未被推薦
+    novelty_bonus = float(PERSONAL_WEIGHTS.get('recent_new_want_bonus', 0.01))
+    for wid in candidate_ids:
+        if (wid not in viewed_ids) and (wid not in replied_ids) and (wid not in recent_reco_ids):
+            scores[wid] += novelty_bonus
+
+    # 抖動（minute/hour/day/none）
     if jitter and jitter > 0:
-        seed_key = f"{user.id}-{now.strftime('%Y%m%d%H' if seed_scope=='hour' else '%Y%m%d')}"
-        rnd = random.Random(seed_key)
+        _fmt = {'minute': '%Y%m%d%H%M', 'hour': '%Y%m%d%H', 'day': '%Y%m%d'}.get(seed_scope, '%Y%m%d')
+        rnd = random.Random(f"{user.id}-{now.strftime(_fmt)}")
         for wid in scores:
             scores[wid] += rnd.uniform(-jitter, jitter)
 
-    # 近 N 日重推「降權」：僅在 cooldown 沒啟用時才生效
+    # 近 N 日重推「降權」（僅在 cooldown 沒啟用且 multiplier < 1.0）
     if (cooldown_days or 0) <= 0 and RECOMMENDED_WANT_WEIGHT_MULTIPLIER < 1.0:
-        cutoff = now - timedelta(days=RECENT_RECO_DAYS)
-        recent_rec_ids = set(
-            WantRecommendationHistory.objects
-            .filter(user=user, recommended_at__gte=cutoff)
-            .values_list('shop_id', flat=True)
-        )
-        for sid in recent_rec_ids:
-            if sid in scores:
-                scores[sid] *= RECOMMENDED_WANT_WEIGHT_MULTIPLIER
+        for wid in recent_reco_ids:
+            if wid in scores:
+                scores[wid] *= RECOMMENDED_WANT_WEIGHT_MULTIPLIER
 
     # ---------------- 排序 + 多樣性/抽樣 ----------------
-    prelim = sorted(candidate_ids, key=lambda wid: scores.get(wid, 0), reverse=True)
+    prelim = sorted(candidate_ids, key=lambda wid: scores.get(wid, 0.0), reverse=True)
+    L = limit or 20
 
     if owner_mode:
-        # ★ 有 owner：保留評分排序，但不做多樣性 / 抽樣 / limit，確保「全部」貼文都回傳
+        # ★ 有 owner：保留評分排序，不做多樣性/抽樣；回傳全部
         final_ids = prelim
     else:
-        # 原邏輯：多樣性（同作者最多 K 篇）
+        # 多樣性（同作者最多 K 篇）
         author_by_id = dict(Want.objects.filter(id__in=prelim).values_list('id', 'user_id'))
         K_PER_AUTHOR = 5
         prelim_diverse, author_count = [], defaultdict(int)
@@ -206,62 +201,104 @@ def personalized_want_recommendation(
                 prelim_diverse.append(wid)
                 author_count[aid] += 1
 
-        if exclude_seen:
-            prelim_diverse = [wid for wid in prelim_diverse if wid not in viewed_ids]
+        # 看過者降權（不丟掉）
+        if exclude_seen and viewed_ids:
+            SEEN_PENALTY = 0.75
+            for wid in prelim_diverse:
+                if wid in viewed_ids:
+                    scores[wid] *= SEEN_PENALTY
+            prelim_diverse = sorted(prelim_diverse, key=lambda wid: scores.get(wid, 0.0), reverse=True)
 
-        # 權重抽樣（softmax + epsilon-greedy）
-        def softmax(vals):
-            T = 0.7
-            vmax = max(vals) if vals else 0.0
-            exps = [math.exp((v - vmax) / T) for v in vals]
+        # 抽樣池
+        def softmax(vals, T=0.9):
+            if not vals:
+                return []
+            m = max(vals)
+            exps = [math.exp((v - m) / T) for v in vals]
             s = sum(exps) or 1.0
             return [x / s for x in exps]
 
         pool = prelim_diverse[:200]
         if not pool:
             if is_homefeed:
-                hot = (get_hot_wants(request=request).values_list('id', flat=True))[:limit or 20]
+                hot = get_hot_wants(request=request).values_list('id', flat=True)[:L]
                 return Want.objects.filter(id__in=list(hot))
             return Want.objects.none()
 
         pool_scores = [scores[wid] for wid in pool]
         probs = softmax(pool_scores)
-        if explore_ratio and 0 < explore_ratio < 1:
+
+        # 機率平滑（沿用 explore_ratio）
+        if explore_ratio and 0 < explore_ratio < 1 and pool:
             uniform = 1.0 / len(pool)
             probs = [(1 - explore_ratio) * p + explore_ratio * uniform for p in probs]
 
-        pick_seed = f"pick-{user.id}-{now.strftime('%Y%m%d%H' if seed_scope=='hour' else '%Y%m%d')}"
-        rng = random.Random(pick_seed)
+        # 隨機種子
+        _fmt = {'minute': '%Y%m%d%H%M', 'hour': '%Y%m%d%H', 'day': '%Y%m%d'}.get(seed_scope, '%Y%m%d')
+        rng = random.Random(f"pick-{user.id}-{now.strftime(_fmt)}")
 
-        picked, candidates, weights = [], pool[:], probs[:]
-        L = limit or 20
-        for _ in range(min(L, len(candidates))):
-            total = sum(weights)
-            if total <= 0:
-                idx = rng.randrange(len(candidates))
-            else:
-                r, acc, idx = rng.uniform(0, total), 0.0, 0
-                for i, w in enumerate(weights):
-                    acc += w
-                    if r <= acc:
-                        idx = i
-                        break
-            picked.append(candidates[idx])
-            candidates.pop(idx)
-            weights.pop(idx)
+        picked = []
 
+        # ===== 探索池（最近更新 & 公開；排黑名單與自己）=====
+        explore_qs = (Want.objects.filter(permission__id=1)
+                      .exclude(user_id__in=blocked_ids)
+                      .exclude(user=user)
+                      .filter(Q(update__gte=now - timedelta(days=NEW_DAYS)))
+                      .order_by('-update')
+                      .values_list('id', flat=True)[:300])
+        explore_ids = [wid for wid in explore_qs if wid not in pool]
+        novel_ids = [wid for wid in explore_ids
+                     if (wid not in viewed_ids and wid not in replied_ids and wid not in recent_reco_ids)]
+
+        # 用 explore_ratio 決定探索保底名額（20%~50%）
+        explore_min_pick = max(1, round(L * min(0.5, max(0.2, explore_ratio))))
+        explore_pool = (novel_ids or explore_ids)[:max(1, min(200, explore_min_pick))]
+
+        # 先抽探索名額（均勻、無放回）
+        exp_candidates = explore_pool[:]
+        while exp_candidates and len(picked) < explore_min_pick:
+            idx = rng.randrange(len(exp_candidates))
+            picked.append(exp_candidates.pop(idx))
+
+        # 再抽個人化名額（依 probs、無放回）
+        remaining_L = L - len(picked)
+        if remaining_L > 0 and pool:
+            chosen = set(picked)
+            wid2prob = {wid: p for wid, p in zip(pool, probs)}
+            candidates = [wid for wid in pool if wid not in chosen]
+            weights = [wid2prob.get(wid, 0.0) for wid in candidates]
+
+            for _ in range(min(remaining_L, len(candidates))):
+                total = sum(weights)
+                if total <= 0:
+                    idx = rng.randrange(len(candidates))
+                else:
+                    r, acc, idx = rng.uniform(0, total), 0.0, 0
+                    for i, w in enumerate(weights):
+                        acc += w
+                        if r <= acc:
+                            idx = i
+                            break
+                picked.append(candidates[idx])
+                candidates.pop(idx)
+                weights.pop(idx)
+
+        # 不足名額只在首頁用熱榜補（且避開近期已推薦）
         if len(picked) < L and is_homefeed:
             need = L - len(picked)
             already = set(picked)
             hot = (get_hot_wants(request=request)
-                    .exclude(id__in=already | recent_reco)
-                    .values_list('id', flat=True))
+                   .exclude(id__in=already | recent_reco_ids)
+                   .values_list('id', flat=True))
             picked += list(hot)[:need]
 
-        if not picked:
-            return Want.objects.none()
-
-        final_ids = picked  # 原本路徑
+        # 最終穩定排序（分數 + update 作為 tie-break）
+        if picked:
+            update_map = dict(Want.objects.filter(id__in=picked).values_list('id', 'update'))
+            picked = sorted(picked, key=lambda wid: (scores.get(wid, 0.0), update_map.get(wid)), reverse=True)
+            final_ids = picked[:L]
+        else:
+            final_ids = pool[:L]
 
     # ---------------- 保序 + 寫歷史 ----------------
     preserved = Case(
@@ -270,8 +307,8 @@ def personalized_want_recommendation(
     )
     qs_ordered = Want.objects.filter(id__in=final_ids).order_by(preserved)
 
-    # 主頁推薦模式才寫入推薦歷史，避免汙染首頁冷卻
-    if is_homefeed :
+    # 僅首頁寫入推薦歷史，避免汙染冷卻
+    if is_homefeed:
         now_ts = timezone.now()
         WantRecommendationHistory.objects.bulk_create(
             [
@@ -289,3 +326,5 @@ def personalized_want_recommendation(
         )
 
     return qs_ordered
+
+

@@ -18,38 +18,38 @@ def get_hot_shops(
     request=None,
     *,
     cooldown_days=0,
-    explore_ratio=0.12,
+    explore_ratio=0.5,
     jitter=0.02,
-    seed_scope="hour"
+    seed_scope="minute"
 ):
     user = getattr(request, 'user', None)
     now = timezone.now()
     recent = now - timedelta(days=days)
+    owner_mode = owner is not None
+    L = limit or 20
 
-    # 黑名單 & 自己
-    if user and user.is_authenticated:
+    # ---------- 黑名單 / 自己 ----------
+    if user and getattr(user, "is_authenticated", False):
         blocked_ids = set(get_blocked_user_ids(user))
     else:
         blocked_ids = set()
 
-    # ==== 建立候選集合 ====
-    owner_mode = owner is not None
+    # ---------- 建立候選 ----------
     if owner_mode:
-        # ★ owner 模式：只改候選的定義；不套 NEW_DAYS/進行中限制
-        if user and owner == user:
-            # 自己看自己的店：公開 + 僅自己可見
+        # 指定 owner：只改候選集合，不套 NEW_DAYS/進行中限制
+        if user and getattr(user, "is_authenticated", False) and owner == user:
             qs = Shop.objects.filter(owner=owner, permission_id__in=[1, 2])
         else:
-            # 看別人的店：只顯示公開
             qs = Shop.objects.filter(owner=owner, permission_id=1)
-        qs = qs.exclude(owner_id__in=blocked_ids)
-        qs = qs.distinct()
-    else:
-        # 一般熱門流
-        qs = Shop.objects.filter(permission_id=1)  # 只推公開店
         if blocked_ids:
-            qs = qs.exclude(owner_id__in=blocked_ids).exclude(owner=user)
-        
+            qs = qs.exclude(owner_id__in=blocked_ids)
+    else:
+        qs = Shop.objects.filter(permission_id=1)
+        if blocked_ids:
+            qs = qs.exclude(owner_id__in=blocked_ids)
+        if user and getattr(user, "is_authenticated", False):
+            qs = qs.exclude(owner_id=user.id)  # 避免把自己的店推給自己
+
         # keyword / tag
         if keyword:
             qs = qs.filter(
@@ -61,67 +61,67 @@ def get_hot_shops(
         if tag:
             qs = qs.filter(shoptag__tag=tag)
 
-        qs = qs.distinct()
-
-        # 非 owner 模式：僅推進行中或最近更新的
+        # 非 owner 模式：僅推進行中或最近 NEW_DAYS 更新
         qs = qs.filter(
             Q(start_time__lte=now, end_time__gte=now) |
             Q(update__gte=now - timedelta(days=NEW_DAYS))
         )
 
-        # 首頁冷卻（owner 模式關閉，避免把對象的店直接排光）
-        is_homefeed = not (keyword or tag)
-        base_qs = qs
-        if is_homefeed and cooldown_days and cooldown_days > 0:
-            if user and user.is_authenticated:
+    qs = qs.distinct()
+    if not qs.exists():
+        return qs.none()
+
+    # ---------- 首頁冷卻 ----------
+    is_homefeed = (not owner_mode) and (not keyword) and (not tag)
+    base_qs = qs
+    if is_homefeed and cooldown_days and cooldown_days > 0:
+        if user and getattr(user, "is_authenticated", False):
+            recent_reco_ids = set(
+                ShopRecommendationHistory.objects.filter(
+                    user=user,
+                    recommended_at__gte=now - timedelta(days=cooldown_days)
+                ).values_list('shop_id', flat=True)
+            )
+        else:
+            if request and not getattr(getattr(request, 'session', None), 'session_key', None):
+                request.session.save()
+            sess_key = getattr(request.session, 'session_key', None)
+            recent_reco_ids = set()
+            if sess_key:
                 recent_reco_ids = set(
                     ShopRecommendationHistory.objects.filter(
-                        user=user,
+                        session_key=sess_key,
                         recommended_at__gte=now - timedelta(days=cooldown_days)
                     ).values_list('shop_id', flat=True)
                 )
-            else:
-                if request and not request.session.session_key:
-                    request.session.save()
-                sess_key = getattr(getattr(request, 'session', None), 'session_key', None)
-                recent_reco_ids = set()
-                if sess_key:
-                    recent_reco_ids = set(
-                        ShopRecommendationHistory.objects.filter(
-                            session_key=sess_key,
-                            recommended_at__gte=now - timedelta(days=cooldown_days)
-                        ).values_list('shop_id', flat=True)
-                    )
 
-            if recent_reco_ids:
-                remain_qs = qs.exclude(id__in=recent_reco_ids)
+        if recent_reco_ids:
+            remain_qs = qs.exclude(id__in=recent_reco_ids)
 
-                if not remain_qs.exists():
-                    short_ids = set(
-                        ShopRecommendationHistory.objects.filter(
-                            user=user if (user and user.is_authenticated) else None,
-                            session_key=None if (user and user.is_authenticated) else getattr(request.session, 'session_key', None),
-                            recommended_at__gte=now - timedelta(hours=12)
-                        ).values_list('shop_id', flat=True)
-                    )
-                    remain_qs = qs.exclude(id__in=short_ids) if short_ids else qs
+            # 若整批被清光，放寬為 12 小時冷卻
+            if not remain_qs.exists():
+                short_ids = set(
+                    ShopRecommendationHistory.objects.filter(
+                        user=user if (user and getattr(user, "is_authenticated", False)) else None,
+                        session_key=None if (user and getattr(user, "is_authenticated", False)) else getattr(request.session, 'session_key', None),
+                        recommended_at__gte=now - timedelta(hours=12)
+                    ).values_list('shop_id', flat=True)
+                )
+                remain_qs = qs.exclude(id__in=short_ids) if short_ids else qs
 
-                if not remain_qs.exists():
-                    # 只排除最新 30%
-                    recent_list = list(recent_reco_ids)
-                    cut = int(len(recent_list) * 0.3)
-                    keep_exclude = set(recent_list[:cut])
-                    remain_qs = qs.exclude(id__in=keep_exclude)
+            # 再不行：只排除最新 30% 的冷卻名單
+            if not remain_qs.exists():
+                recent_list = list(recent_reco_ids)
+                cut = int(len(recent_list) * 0.3)
+                keep_exclude = set(recent_list[:cut])
+                remain_qs = qs.exclude(id__in=keep_exclude)
 
-                if not remain_qs.exists():
-                    remain_qs = base_qs
-
-                qs = remain_qs
+            qs = remain_qs if remain_qs.exists() else base_qs
 
     if not qs.exists():
         return qs.none()
 
-    # ==== 熱度評分（owner 模式與一般模式相同） ====
+    # ---------- 熱度評分 ----------
     candidate_ids = list(qs.values_list('id', flat=True))
     scores = {sid: 0.0 for sid in candidate_ids}
 
@@ -130,7 +130,7 @@ def get_hot_shops(
                 .filter(date__gte=recent, shop_id__in=candidate_ids)
                 .values('shop_id').annotate(c=Count('id'))):
         sid = row['shop_id']
-        scores[sid] += HOT_WEIGHTS['recent_views'] * row['c']
+        scores[sid] += HOT_WEIGHTS.get('recent_views', 0) * row['c']
 
     # 最近成交（有效訂單：state 4、5）
     for row in (ProductOrder.objects
@@ -139,46 +139,49 @@ def get_hot_shops(
                         product__shop_id__in=candidate_ids)
                 .values('product__shop_id').annotate(c=Count('id'))):
         sid = row['product__shop_id']
-        scores[sid] += HOT_WEIGHTS['recent_sales'] * row['c']
+        scores[sid] += HOT_WEIGHTS.get('recent_sales', 0) * row['c']
 
     # 新店加成（最近 NEW_DAYS 內更新）
-    for sid in Shop.objects.filter(id__in=candidate_ids, update__gte=now - timedelta(days=NEW_DAYS)).values_list('id', flat=True):
-        scores[sid] += HOT_WEIGHTS['new_shop_bonus']
+    if HOT_WEIGHTS.get('new_shop_bonus', 0):
+        recent_shop_ids = set(
+            Shop.objects.filter(id__in=candidate_ids, update__gte=now - timedelta(days=NEW_DAYS))
+            .values_list('id', flat=True)
+        )
+        for sid in recent_shop_ids:
+            scores[sid] += HOT_WEIGHTS['new_shop_bonus']
 
-    # 輕微抖動（打破同分）
+    # 抖動（支援 minute/hour/day）
     if jitter and jitter > 0:
-        if user and user.is_authenticated:
+        if user and getattr(user, "is_authenticated", False):
             who = f"user-{user.id}"
         else:
-            if request and not request.session.session_key:
+            if request and not getattr(getattr(request, 'session', None), 'session_key', None):
                 request.session.save()
             who = f"sess-{getattr(request.session, 'session_key', 'anon')}"
-        time_key = now.strftime('%Y%m%d%H') if seed_scope == "hour" else now.strftime('%Y%m%d')
-        cond = f"o={getattr(owner,'id',owner)}|k={bool(keyword)}|t={getattr(tag, 'id', tag)}"
-        rnd = random.Random(f"hot-jitter|{who}|{time_key}|{cond}")
+        _fmt = {'minute': '%Y%m%d%H%M', 'hour': '%Y%m%d%H', 'day': '%Y%m%d'}.get(seed_scope, '%Y%m%d')
+        cond = f"o={getattr(owner,'id',owner)}|k={bool(keyword)}|t={getattr(tag,'id',tag)}"
+        rnd = random.Random(f"shop-hot-jitter|{who}|{now.strftime(_fmt)}|{cond}")
         for sid in scores:
             scores[sid] += rnd.uniform(-jitter, jitter)
 
-    # ==== 排序 / 多樣性 / 抽樣 ====
+    # ---------- 排序 ----------
     prelim = sorted(candidate_ids, key=lambda sid: scores.get(sid, 0.0), reverse=True)
 
     if owner_mode:
-        # ★ owner 模式：不做「每位店主最多 K 家」也不做抽樣，避免把該 owner 的店濾掉。
-        # 依分數排序即可；同分時已由 jitter 打散。必要時可依更新時間再做穩定次序。
-        final_ids = prelim[: (limit or len(prelim))]
+        # owner 模式：不做多樣性/抽樣；直接回傳排序（取前 L 或全部）
+        final_ids = prelim[:L]
     else:
-        # 一般熱門流：保留你原本的多樣性與抽樣
+        # 多樣性：同店主最多 K 家
         owner_by_shop = dict(Shop.objects.filter(id__in=prelim).values_list('id', 'owner_id'))
         K_PER_OWNER = 5
-        picked, owner_count = [], defaultdict(int)
+        prelim_diverse, owner_count = [], defaultdict(int)
         for sid in prelim:
             oid = owner_by_shop.get(sid)
             if owner_count[oid] < K_PER_OWNER:
-                picked.append(sid)
+                prelim_diverse.append(sid)
                 owner_count[oid] += 1
-            if limit and len(picked) >= limit:
-                break
 
+        # 抽樣池（權重 = softmax(scores)）
         def softmax(vals, T=0.7):
             if not vals:
                 return []
@@ -187,37 +190,79 @@ def get_hot_shops(
             s = sum(exps) or 1.0
             return [x / s for x in exps]
 
-        pool = picked[:] if picked else prelim[:]
+        pool = (prelim_diverse or prelim)[:200]
         if not pool:
-            prelim = prelim[: (limit or 20)]
-            if not prelim:
-                return Shop.objects.filter(permission_id=1).order_by('-update')[: (limit or 20)]
-            preserved = Case(
-                *[When(id=pk, then=pos) for pos, pk in enumerate(prelim)],
-                output_field=IntegerField()
-            )
-            return Shop.objects.filter(id__in=prelim).order_by(preserved)
+            # 極端情況：直接退回最近更新
+            return Shop.objects.filter(permission_id=1).order_by('-update')[:L]
 
-        pool = pool[: (limit or 20) * 10]
         pool_scores = [scores[sid] for sid in pool]
         probs = softmax(pool_scores, T=0.7)
+
+        # 機率平滑（沿用 explore_ratio）
         if explore_ratio and 0 < explore_ratio < 1:
             uniform = 1.0 / len(pool)
             probs = [(1 - explore_ratio) * p + explore_ratio * uniform for p in probs]
 
-        if user and user.is_authenticated:
+        # 取得「近期已推薦」名單（用於探索池優先避開）
+        if user and getattr(user, "is_authenticated", False):
             who = f"user-{user.id}"
+            recent_reco_ids = set(
+                ShopRecommendationHistory.objects.filter(
+                    user=user, recommended_at__gte=now - timedelta(days=7)
+                ).values_list('shop_id', flat=True)
+            )
         else:
-            if request and not request.session.session_key:
+            if request and not getattr(getattr(request, 'session', None), 'session_key', None):
                 request.session.save()
-            who = f"sess-{getattr(request.session, 'session_key', 'anon')}"
-        time_key = now.strftime('%Y%m%d%H') if seed_scope == "hour" else now.strftime('%Y%m%d')
-        cond = f"o=None|k={bool(keyword)}|t={getattr(tag, 'id', tag)}"
-        rng = random.Random(f"hot-pick|{who}|{time_key}|{cond}")
+            sess_key = getattr(request.session, 'session_key', None)
+            who = f"sess-{sess_key or 'anon'}"
+            recent_reco_ids = set()
+            if sess_key:
+                recent_reco_ids = set(
+                    ShopRecommendationHistory.objects.filter(
+                        session_key=sess_key, recommended_at__gte=now - timedelta(days=7)
+                    ).values_list('shop_id', flat=True)
+                )
 
-        need = limit or 20
-        final_ids, candidates, weights = [], pool[:], probs[:]
-        for _ in range(min(need, len(candidates))):
+        # 建立探索池：最近更新的公開店（避開黑名單/自己），優先未被近期推薦
+        _exp_base = Shop.objects.filter(permission_id=1)
+        if blocked_ids:
+            _exp_base = _exp_base.exclude(owner_id__in=blocked_ids)
+        if user and getattr(user, "is_authenticated", False):
+            _exp_base = _exp_base.exclude(owner_id=user.id)
+
+        explore_qs = (_exp_base
+                      .filter(Q(start_time__lte=now, end_time__gte=now) |
+                              Q(update__gte=now - timedelta(days=NEW_DAYS)))
+                      .order_by('-update')
+                      .values_list('id', flat=True)[:300])
+        explore_ids = [sid for sid in explore_qs if sid not in pool]
+        novel_ids = [sid for sid in explore_ids if sid not in recent_reco_ids]
+
+        # 探索名額（20%~50%，由 explore_ratio 控制）
+        explore_min_pick = max(1, round(L * min(0.5, max(0.2, explore_ratio))))
+        explore_pool = (novel_ids or explore_ids)[:max(1, min(200, explore_min_pick))]
+
+        # 隨機種子（與抖動一致的顆粒度）
+        _fmt = {'minute': '%Y%m%d%H%M', 'hour': '%Y%m%d%H', 'day': '%Y%m%d'}.get(seed_scope, '%Y%m%d')
+        cond = f"o=None|k={bool(keyword)}|t={getattr(tag,'id',tag)}"
+        rng = random.Random(f"shop-hot-pick|{who}|{now.strftime(_fmt)}|{cond}")
+
+        final_ids = []
+
+        # 先抽「探索名額」（均勻、無放回）
+        exp_candidates = explore_pool[:]
+        while exp_candidates and len(final_ids) < explore_min_pick:
+            idx = rng.randrange(len(exp_candidates))
+            final_ids.append(exp_candidates.pop(idx))
+
+        # 再抽「權重名額」（依 probs、無放回）
+        chosen = set(final_ids)
+        sid2prob = {sid: p for sid, p in zip(pool, probs)}
+        candidates = [sid for sid in pool if sid not in chosen]
+        weights = [sid2prob.get(sid, 0.0) for sid in candidates]
+
+        while candidates and len(final_ids) < L:
             total = sum(weights)
             if total <= 0:
                 idx = rng.randrange(len(candidates))
@@ -232,24 +277,28 @@ def get_hot_shops(
             candidates.pop(idx)
             weights.pop(idx)
 
-        if not final_ids:
-            prelim = prelim[: (limit or 20)]
-            if not prelim:
-                return Shop.objects.filter(permission_id=1).order_by('-update')[: (limit or 20)]
-            preserved = Case(
-                *[When(id=pk, then=pos) for pos, pk in enumerate(prelim)],
-                output_field=IntegerField()
-            )
-            return Shop.objects.filter(id__in=prelim).order_by(preserved)
+        # 若仍不足，先用最近更新補，再用分數補
+        if len(final_ids) < L:
+            already = set(final_ids)
+            fallback = list(qs.exclude(id__in=already).order_by('-update').values_list('id', flat=True)[: (L - len(final_ids))])
+            final_ids += fallback
+            if len(final_ids) < L:
+                rest = [sid for sid in prelim if sid not in already][: (L - len(final_ids))]
+                final_ids += rest
 
-    # ==== 保序 + 寫歷史（owner 模式不寫歷史，避免汙染首頁冷卻） ====
+    # ---------- 保序 + 寫歷史 ----------
+    # tie-break：同分時用 update（越新越前）
+    update_map = dict(Shop.objects.filter(id__in=final_ids).values_list('id', 'update'))
+    final_ids = sorted(final_ids, key=lambda sid: (scores.get(sid, 0.0), update_map.get(sid)), reverse=True)
+
     preserved = Case(
         *[When(id=pk, then=pos) for pos, pk in enumerate(final_ids)],
         output_field=IntegerField()
     )
     qs_ordered = Shop.objects.filter(id__in=final_ids).order_by(preserved)
 
-    if is_homefeed :
+    # 僅首頁寫入推薦歷史（owner 模式避免汙染）
+    if is_homefeed:
         history = []
         now_ts = timezone.now()
         for s in qs_ordered:
@@ -261,10 +310,10 @@ def get_hot_shops(
             }
             if keyword:
                 payload['keyword'] = keyword
-            if user and user.is_authenticated:
+            if user and getattr(user, "is_authenticated", False):
                 payload['user'] = user
             else:
-                if request and not request.session.session_key:
+                if request and not getattr(getattr(request, 'session', None), 'session_key', None):
                     request.session.save()
                 sess_key = getattr(request.session, 'session_key', None)
                 if not sess_key:
@@ -275,3 +324,4 @@ def get_hot_shops(
             ShopRecommendationHistory.objects.bulk_create(history, ignore_conflicts=True)
 
     return qs_ordered
+

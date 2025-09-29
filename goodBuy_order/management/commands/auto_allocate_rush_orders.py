@@ -271,3 +271,4 @@ class Command(BaseCommand):
             locked_shop.purchase_priority_id = 1
             locked_shop.is_rush_settled = True
             locked_shop.save(update_fields=['purchase_priority_id', 'is_rush_settled'])
+

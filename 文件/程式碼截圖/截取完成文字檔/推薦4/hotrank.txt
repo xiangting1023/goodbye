@@ -1,0 +1,83 @@
+# goodBuy_shop/hotrank.py
+from collections import defaultdict
+from datetime import timedelta
+from django.db.models import Q, Count, Case, When, IntegerField
+from django.utils import timezone
+import random, math
+
+from goodBuy_shop.models import Shop, ShopFootprints
+from goodBuy_order.models import ProductOrder  # 成交訊號
+from goodBuy_shop.recommend_config import HOT_WEIGHTS, NEW_DAYS
+
+def hot_rank_shops_clip(L=20, days=7, K_PER_OWNER=5, jitter=0.02, seed_scope="hour",
+                        user=None, blocked_ids=(), keyword=None, tag=None):
+    now, recent = timezone.now(), timezone.now() - timedelta(days=days)
+
+    # 1) 候選（公開 + 非黑名單 + 進行中/近期更新 + 關鍵字/標籤）
+    qs = Shop.objects.filter(permission_id=1)
+    if blocked_ids: qs = qs.exclude(owner_id__in=blocked_ids)
+    if user and getattr(user, "is_authenticated", False): qs = qs.exclude(owner_id=user.id)
+    if keyword:
+        qs = qs.filter(Q(name__icontains=keyword)|Q(introduce__icontains=keyword)|
+                       Q(shoptag__tag__name__icontains=keyword)|Q(owner__username__icontains=keyword))
+    if tag: qs = qs.filter(shoptag__tag=tag)
+    qs = qs.filter(Q(start_time__lte=now, end_time__gte=now) | Q(update__gte=now - timedelta(days=NEW_DAYS))).distinct()
+    ids = list(qs.values_list('id', flat=True))
+    if not ids: return qs.none()
+
+    # 2) 計分（瀏覽 + 成交 + 新店）
+    S = defaultdict(float)
+    for r in (ShopFootprints.objects.filter(date__gte=recent, shop_id__in=ids)
+              .values('shop_id').annotate(c=Count('id'))):
+        S[r['shop_id']] += HOT_WEIGHTS.get('recent_views', 0) * r['c']
+    for r in (ProductOrder.objects.filter(order__date__gte=recent,
+                                          order__order_state__id__in=[4,5],
+                                          product__shop_id__in=ids)
+              .values('product__shop_id').annotate(c=Count('id'))):
+        S[r['product__shop_id']] += HOT_WEIGHTS.get('recent_sales', 0) * r['c']
+    if HOT_WEIGHTS.get('new_shop_bonus'):
+        for sid in Shop.objects.filter(id__in=ids, update__gte=now - timedelta(days=NEW_DAYS)).values_list('id', flat=True):
+            S[sid] += HOT_WEIGHTS['new_shop_bonus']
+
+    # 3) 抖動（可重現種子）
+    if jitter and jitter > 0:
+        _fmt = {'minute':'%Y%m%d%H%M','hour':'%Y%m%d%H','day':'%Y%m%d'}.get(seed_scope, '%Y%m%d')
+        who = f"user-{user.id}" if (user and getattr(user, 'is_authenticated', False)) else "anon"
+        rnd = random.Random(f"hot|{who}|{now.strftime(_fmt)}|k={bool(keyword)}|t={bool(tag)}")
+        for sid in ids: S[sid] += rnd.uniform(-jitter, jitter)
+
+    # 4) 排序 + 多樣性（同 owner 最多 K）
+    prelim = sorted(ids, key=lambda s: S.get(s, 0.0), reverse=True)
+    owner_by = dict(Shop.objects.filter(id__in=prelim).values_list('id', 'owner_id'))
+    pick, cnt = [], defaultdict(int)
+    for sid in prelim:
+        oid = owner_by.get(sid)
+        if cnt[oid] < K_PER_OWNER: pick.append(sid); cnt[oid]+=1
+        if len(pick) >= L: break
+
+    # 5) 保序回傳（同分用 update 做 tie-break）
+    update_map = dict(Shop.objects.filter(id__in=pick).values_list('id', 'update'))
+    pick.sort(key=lambda s: (S.get(s, 0.0), update_map.get(s)), reverse=True)
+    preserved = Case(*[When(id=pk, then=i) for i, pk in enumerate(pick)], output_field=IntegerField())
+    return Shop.objects.filter(id__in=pick).order_by(preserved)
+
+
+
+Delta（Shop → Want 要替換的行）
+# 模型：
+# from goodBuy_want.models import Want, WantFootprints, WantBack  # ← 改用 Want 模組
+
+# 候選與欄位：
+# Shop → Want
+# permission_id / start_time / end_time 若 Want 無此欄，保留 only: Q(update__gte=now - timedelta(days=NEW_DAYS))
+# owner_id → poster_id（或 want.user_id，依你的 Want 欄位）
+
+# 瀏覽記錄：
+# ShopFootprints.shop_id → WantFootprints.want_id
+
+# 成交/互動記錄：
+# ProductOrder.product__shop_id → WantBack.want_id
+# order_state 篩選拿掉，改用 reply 的時間窗：WantBack.created_at__gte=recent
+
+
+
