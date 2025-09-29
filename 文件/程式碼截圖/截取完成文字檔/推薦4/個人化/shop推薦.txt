@@ -1,0 +1,160 @@
+目的：產生「個人化商店推薦」清單。對候選商店蒐集多種使用者訊號（搜尋、瀏覽、曾下單、新店更新），以加權相加＋乘法倍率得到原始分數，加入抖動提升多樣性，並以Softmax 機率抽樣（含探索比例）與同擁有者上限做多樣性控制；支援 owner 模式（只看某位賣家所有商店內的推薦）。
+
+作法
+候選集：依 owner/keyword/tag 與可見性過濾，排除黑名單與自己店；首頁可套 cooldown_days 排除近期已推店。
+
+打分：
+搜尋匹配：(tags+name+introduce) 命中 × PERSONAL_WEIGHTS['search_keyword']。
+看過相關店：(name+introduce) × viewed_related_multiplier（乘法縮放）。
+曾下單店：tags × traded_shop_bonus。
+新店/近期更新：常數加分 new_shop_bonus（NEW_DAYS 內）。
+抖動：對每間店加上 [-jitter, +jitter] 的可重現亂數。
+
+排序/抽樣：先依分數降序得 prelim →（非 owner 模式）限制同 owner 最多 5 家 → 取前 200 做 Softmax(T=0.7) 機率抽樣（epsilon-greedy 混入 explore_ratio 均勻探索），不重複抽出limit；不足則用熱門補齊。
+
+輸出/記錄：保序查詢回傳並寫入 ShopRecommendationHistory(source='personalized', algorithm_version='v3')保存推薦記錄
+
+
+
+！！輸入參數在推薦參數內！！
+！！shop want共用 ！！
+
+
+
+
+！！計算邏輯與公式是圖片，我打不出運算元！！
+
+
+
+# 測試模式停用冷卻與降權；正式上線改為 cooldown=3 或 multiplier=0.5
+# 候選與過濾（含 owner 模式、冷卻期）
+now = timezone.now()
+blocked_ids = set(get_blocked_user_ids(user))
+
+if owner is not None:
+    # 自己看自己的店含私密；他人只看公開
+    qs = Shop.objects.filter(owner=owner, permission_id__in=([1,2] if owner==user else [1]))
+    qs = qs.exclude(owner_id__in=blocked_ids)
+else:
+    qs = (Shop.objects
+          .filter(permission_id=1)
+          .filter(Q(start_time__lte=now, end_time__gte=now) |
+                  Q(update__gte=now - timedelta(days=NEW_DAYS)))
+          .exclude(owner_id__in=blocked_ids).exclude(owner=user))
+
+if keyword: qs = qs.filter(Q(name__icontains=keyword) | Q(introduce__icontains=keyword) |
+                           Q(shoptag__tag__name__icontains=keyword) | Q(owner__username__icontains=keyword))
+if tag: qs = qs.filter(shoptag__tag=tag)
+qs = qs.distinct()
+
+# 首頁可套冷卻期，排除最近 N 日已推薦店
+if not (keyword or owner or tag) and cooldown_days > 0:
+    cool_ids = ShopRecommendationHistory.objects.filter(
+        user=user, recommended_at__gte=now - timedelta(days=cooldown_days)
+    ).values_list('shop_id', flat=True)
+    qs = qs.exclude(id__in=set(cool_ids))
+
+# 打分（加權＋乘法＋抖動）
+scores = {sid: 0.0 for sid in qs.values_list('id', flat=True)}
+
+# 搜尋匹配
+recent_kw = list(SearchHistory.objects
+                 .filter(user=user, searched_at__gte=now - timedelta(days=SEARCH_HISTORY_DAYS))
+                 .values_list('keyword', flat=True))
+if keyword: recent_kw.append(keyword)
+recent_kw = [kw for kw in recent_kw if kw]
+
+if recent_kw:
+    kw_base = (KEYWORD_SCORES['name'] + KEYWORD_SCORES['introduce'] + KEYWORD_SCORES['tags']) \
+              * PERSONAL_WEIGHTS['search_keyword']
+    matched = set()
+    for kw in recent_kw:
+        matched |= set(qs.filter(Q(name__icontains=kw) | Q(introduce__icontains=kw) |
+                                 Q(shoptag__tag__name__icontains=kw) | Q(owner__username__icontains=kw))
+                         .values_list('id', flat=True))
+    for sid in matched: scores[sid] += kw_base
+
+# 看過相關（乘法倍率）
+viewed_ids = set(ShopFootprints.objects
+                 .filter(user=user, date__gte=now - timedelta(days=VIEW_DAYS),
+                         shop_id__in=scores.keys())
+                 .values_list('shop_id', flat=True))
+if viewed_ids:
+    add_viewed = (KEYWORD_SCORES['name'] + KEYWORD_SCORES['introduce']) \
+                 * PERSONAL_WEIGHTS['viewed_related_multiplier']
+    for sid in viewed_ids: scores[sid] += add_viewed
+
+# 曾下單加分 + 新店加分
+ordered_ids = set(ProductOrder.objects
+                  .filter(order__user=user, order__date__gte=now - timedelta(days=ORDER_DAYS),
+                          product__shop_id__in=scores.keys())
+                  .values_list('product__shop_id', flat=True))
+for sid in ordered_ids:
+    scores[sid] += KEYWORD_SCORES['tags'] * PERSONAL_WEIGHTS.get('traded_shop_bonus', 1.0)
+
+eps = float(PERSONAL_WEIGHTS.get('new_shop_bonus', 0.0)) or 0.0
+if eps:
+    recent_ids = set(Shop.objects.filter(id__in=scores.keys(),
+                                         update__gte=now - timedelta(days=NEW_DAYS))
+                              .values_list('id', flat=True))
+    for sid in recent_ids: scores[sid] += eps
+
+# 抖動（依 user+時間種子，確保可重現）
+seed = f"{user.id}-{now.strftime('%Y%m%d%H' if seed_scope=='hour' else '%Y%m%d')}"
+rng = random.Random(seed)
+for sid in scores: scores[sid] += rng.uniform(-jitter, jitter)
+
+# 多樣性與抽樣（Softmax + ε-greedy）
+prelim = sorted(scores.keys(), key=lambda sid: scores[sid], reverse=True)
+
+if owner is not None:
+    final_ids = prelim   # owner 模式不做多樣性與抽樣
+else:
+    # 同 owner 最多 5 家
+    owner_by = dict(Shop.objects.filter(id__in=prelim).values_list('id', 'owner_id'))
+    cap, cnt, diverse = 5, defaultdict(int), []
+    for sid in prelim:
+        oid = owner_by.get(sid)
+        if cnt[oid] < cap: diverse.append(sid); cnt[oid] += 1
+
+    # 排除看過
+    if exclude_seen: diverse = [sid for sid in diverse if sid not in viewed_ids]
+
+    # 取前 200 用 softmax 抽樣（不重複）
+    pool = diverse[:200]; vals = [scores[s] for s in pool]
+    T = 0.7; vmax = max(vals) if vals else 0.0
+    probs = [math.exp((v - vmax)/T) for v in vals]; s = sum(probs) or 1.0
+    probs = [p/s for p in probs]
+
+    # ε-greedy 混合
+    if 0 < explore_ratio < 1:
+        uni = 1.0/len(pool); probs = [(1-explore_ratio)*p + explore_ratio*uni for p in probs]
+
+    # 抽 limit 個（無放回）
+    pick_seed = f"pick-{user.id}-{now.strftime('%Y%m%d%H' if seed_scope=='hour' else '%Y%m%d')}"
+    rng = random.Random(pick_seed)
+    picked, cand, w = [], pool[:], probs[:]
+    L = limit or 20
+    for _ in range(min(L, len(cand))):
+        tot = sum(w)
+        idx = rng.randrange(len(cand)) if tot <= 0 else next(
+            i for i, acc in enumerate([sum(w[:i+1]) for i in range(len(w))]) if rng.uniform(0, tot) <= acc
+        )
+        picked.append(cand.pop(idx)); w.pop(idx)
+
+    # 不足則熱門補齊
+    if len(picked) < L:
+        hot = list(get_hot_shops(request=request).exclude(id__in=set(picked)).values_list('id', flat=True))
+        picked += hot[: L - len(picked)]
+
+    final_ids = picked
+
+# 依抽樣順序建立 QuerySet 並記錄歷史
+preserved = Case(*[When(id=pk, then=pos) for pos, pk in enumerate(final_ids)], output_field=IntegerField())
+qs_ordered = Shop.objects.filter(id__in=final_ids).order_by(preserved)
+ShopRecommendationHistory.objects.bulk_create([
+    ShopRecommendationHistory(user=user, shop=s, recommended_at=timezone.now(),
+                              source='personalized', keyword=keyword or None, algorithm_version='v3')
+    for s in qs_ordered
+], ignore_conflicts=True)
+return qs_ordered

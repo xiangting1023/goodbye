@@ -15,7 +15,7 @@ from goodBuy_web.utils import get_blocked_user_ids
 from goodBuy_shop.hot_rank import get_hot_shops
 from goodBuy_shop.recommend_config import (
     PERSONAL_WEIGHTS, KEYWORD_SCORES, RECOMMENDED_SHOP_WEIGHT_MULTIPLIER,
-    SEARCH_HISTORY_DAYS, VIEW_DAYS, ORDER_DAYS,
+    SEARCH_HISTORY_DAYS, VIEW_DAYS, ORDER_DAYS,NEW_DAYS, RECENT_RECO_DAYS
 )
 
 def personalized_shop_recommendation(
@@ -27,8 +27,8 @@ def personalized_shop_recommendation(
     limit=20,
     *,
     cooldown_days=0,
-    explore_ratio=0.15,
-    jitter=0.03,
+    explore_ratio=0.5,
+    jitter=0.05,
     seed_scope="hour"
 ):
     user = getattr(request, 'user', None)
@@ -39,7 +39,6 @@ def personalized_shop_recommendation(
     blocked_ids = set(get_blocked_user_ids(user))
 
     # ---------------- filter ----------------
-    NEW_DAYS = 30  # 讓新店也可進榜
 
     # ★★ owner 模式：只調整候選集合，其它評分流程不變 ★★
     if owner is not None:
@@ -158,7 +157,7 @@ def personalized_shop_recommendation(
         for sid in ordered_shop_ids:
             scores[sid] += add_order
 
-    EPS = float(PERSONAL_WEIGHTS.get('recent_new_shop_bonus', 0.0)) or 0.0
+    EPS = float(PERSONAL_WEIGHTS.get('new_shop_bonus', 0.0)) or 0.0
     if EPS:
         recent_shop_ids = set(
             Shop.objects.filter(id__in=candidate_ids, update__gte=now - timedelta(days=NEW_DAYS))
@@ -173,6 +172,18 @@ def personalized_shop_recommendation(
         for sid in scores:
             scores[sid] += rnd.uniform(-jitter, jitter)
 
+    # 近 N 日重推「降權」：僅在 cooldown 沒啟用時才生效
+    if (cooldown_days or 0) <= 0 and RECOMMENDED_SHOP_WEIGHT_MULTIPLIER < 1.0:
+        recent_rec_ids = set(
+            ShopRecommendationHistory.objects.filter(
+                user=user,
+                recommended_at__gte=now - timedelta(days=RECENT_RECO_DAYS)
+            ).values_list('shop_id', flat=True)
+        )
+        for sid in recent_rec_ids:
+            if sid in scores:
+                scores[sid] *= RECOMMENDED_SHOP_WEIGHT_MULTIPLIER
+
     # ---------- 排序初稿 ----------
     prelim = sorted(candidate_ids, key=lambda sid: scores.get(sid, 0), reverse=True)
 
@@ -184,7 +195,7 @@ def personalized_shop_recommendation(
     else:
         # 原邏輯：多樣性（同 owner 最多 K 家）
         owner_by_shop = dict(Shop.objects.filter(id__in=prelim).values_list('id', 'owner_id'))
-        K_PER_OWNER = 5
+        K_PER_OWNER = 10
         prelim_diverse, owner_count = [], defaultdict(int)
         for sid in prelim:
             oid = owner_by_shop.get(sid)
@@ -251,27 +262,31 @@ def personalized_shop_recommendation(
         final_ids = picked
 
 
+    # 保序排序（依抽樣後 final_ids 的順序）
     preserved = Case(
-                *[When(id=pk, then=pos) for pos, pk in enumerate(final_ids)],
-                output_field=IntegerField()
-            )
+        *[When(id=pk, then=pos) for pos, pk in enumerate(final_ids)],
+        output_field=IntegerField()
+    )
     qs_ordered = Shop.objects.filter(id__in=final_ids).order_by(preserved)
 
+    # 只有在主頁推送才寫入推薦歷史，避免汙染首頁冷卻
+    if is_homefeed :
+        now_ts = timezone.now()
+        ShopRecommendationHistory.objects.bulk_create(
+            [
+                ShopRecommendationHistory(
+                    user=user,
+                    shop=w,
+                    recommended_at=now_ts,
+                    source='personalized',
+                    keyword=keyword or None,
+                    algorithm_version='v3',
+                )
+                for w in qs_ordered
+            ],
+            ignore_conflicts=True,
+        )
 
-    history = []
-    now_ts = timezone.now()
-    for s in qs_ordered:
-        history.append(ShopRecommendationHistory(
-            user=user,
-            shop=s,
-            recommended_at=now_ts,
-            source='personalized',
-            keyword=keyword or None,
-            algorithm_version='v3'
-        ))
-    if history:
-        ShopRecommendationHistory.objects.bulk_create(history, ignore_conflicts=True)
-
-    print(len(qs_ordered), "personalized shops for", user.username, keyword or "", tag or "", owner or "")
     return qs_ordered
+
 

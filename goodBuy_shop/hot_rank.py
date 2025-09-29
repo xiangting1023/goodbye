@@ -1,12 +1,12 @@
 from collections import defaultdict
 from datetime import timedelta
-from django.db.models import Q, Count, Case, When, IntegerField, Value
+from django.db.models import Q, Count, Case, When, IntegerField
 from django.utils import timezone
 import math, random
 
 from goodBuy_shop.models import Shop, ShopFootprints, ShopRecommendationHistory
 from goodBuy_order.models import ProductOrder
-from goodBuy_shop.recommend_config import HOT_WEIGHTS
+from goodBuy_shop.recommend_config import HOT_WEIGHTS, NEW_DAYS
 from goodBuy_web.utils import get_blocked_user_ids
 
 def get_hot_shops(
@@ -64,7 +64,6 @@ def get_hot_shops(
         qs = qs.distinct()
 
         # 非 owner 模式：僅推進行中或最近更新的
-        NEW_DAYS = 7
         qs = qs.filter(
             Q(start_time__lte=now, end_time__gte=now) |
             Q(update__gte=now - timedelta(days=NEW_DAYS))
@@ -143,7 +142,6 @@ def get_hot_shops(
         scores[sid] += HOT_WEIGHTS['recent_sales'] * row['c']
 
     # 新店加成（最近 NEW_DAYS 內更新）
-    NEW_DAYS = 7
     for sid in Shop.objects.filter(id__in=candidate_ids, update__gte=now - timedelta(days=NEW_DAYS)).values_list('id', flat=True):
         scores[sid] += HOT_WEIGHTS['new_shop_bonus']
 
@@ -251,7 +249,7 @@ def get_hot_shops(
     )
     qs_ordered = Shop.objects.filter(id__in=final_ids).order_by(preserved)
 
-    if not owner_mode:
+    if is_homefeed :
         history = []
         now_ts = timezone.now()
         for s in qs_ordered:
