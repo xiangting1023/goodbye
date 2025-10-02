@@ -8,7 +8,7 @@ import random
 
 from goodBuy_shop.models import (
     Shop, ShopFootprints, ShopRecommendationHistory
-)
+    )
 from goodBuy_order.models import ProductOrder
 from goodBuy_web.models import SearchHistory
 from goodBuy_web.utils import get_blocked_user_ids

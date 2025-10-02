@@ -5,7 +5,6 @@ from django.db.models import Q, Case, When, IntegerField
 import math
 import random
 
-from goodBuy_shop.models.shop_recommendation_history import ShopRecommendationHistory
 from goodBuy_want.models import (
     Want, WantFootprints, WantBack, WantRecommendationHistory
 )
@@ -13,11 +12,8 @@ from goodBuy_web.models import SearchHistory
 from goodBuy_web.utils import get_blocked_user_ids
 from goodBuy_want.hot_rank import get_hot_wants
 from goodBuy_want.recommend_config import (
-    PERSONAL_WEIGHTS,
-    KEYWORD_SCORES,
-    RECOMMENDED_WANT_WEIGHT_MULTIPLIER,
-    SEARCH_HISTORY_DAYS, VIEW_DAYS, REPLY_DAYS,
-    NEW_DAYS, RECENT_RECO_DAYS
+    PERSONAL_WEIGHTS, KEYWORD_SCORES, RECOMMENDED_WANT_WEIGHT_MULTIPLIER,
+    SEARCH_HISTORY_DAYS, VIEW_DAYS, REPLY_DAYS, NEW_DAYS, RECENT_RECO_DAYS
 )
 
 def personalized_want_recommendation(
