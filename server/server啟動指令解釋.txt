@@ -1,0 +1,44 @@
+原本指令：
+@echo off
+Step1 === 1 啟動虛擬環境 ===
+cd /d C:\Users\Case509\Desktop\goodbye
+call venv\Scripts\activate.bat  2>nul
+
+Step2 ===  啟動 Waitress  ===
+start "Django (Waitress)" cmd /k ^
+"waitress-serve --listen=127.0.0.1:8000 goodBuy.wsgi:application"
+
+等 3 秒再開隧道
+timeout /t 3 >nul
+
+Step3 ===  啟動 Cloudflared ===
+start "Cloudflared Tunnel" cmd /k "
+"C:\Program Files\Cloudflare\cloudflared.exe" tunnel --url http://localhost:8000"
+
+解釋：
+=============================================
+@echo off => 關掉命令列顯示避免每行指令跳出
+cd /d C:\Users\Case509\Desktop\goodbye =>切換到專案資料夾
+call venv\Scripts\activate.bat  2>nul =>執行虛擬環境的啟用腳本
+=============================================
+
+=============================================
+start "Django (Waitress)" cmd /k ^ => 用cmd開 /k =>保持視窗開啟
+"waitress-serve --listen=127.0.0.1:8000 goodBuy.wsgi:application" =>
+用 Waitress 來啟動 Django WSGI APP，監聽本機 127.0.0.1:8000 做讀取
+=============================================
+
+=============================================
+timeout /t 3 >nul => 
+讓這個檔案暫停 3 秒，讓Waitress 有啟動時間
+不然 Cloudflared 可能嘗試連到還沒好的port，連到上一個或是還沒形成的 Tunnel。
+=============================================
+
+=============================================
+start "Cloudflared Tunnel" cmd /k " => cmd 啟動 cloudflared
+"C:\Program Files\Cloudflare\cloudflared.exe" tunnel --url http://localhost:8000"
+=>指向本機的8000port，讓本機該連線對外的Cloudflare Tunnel 
+然後Cloudflare會給一個外部URL，讓該URL連上 127.0.0.1:8000 後可以供外部使用。
+=============================================
+
+有可能有問題的：Tunnel是隧道的意思 就是可以想成連線通道
