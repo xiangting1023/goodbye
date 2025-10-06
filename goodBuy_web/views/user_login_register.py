@@ -91,10 +91,14 @@ def change_pass(request):
 def editProfile(request):
     user = request.user
     profile, _ = Profile.objects.get_or_create(user=user)
-    city_choices = UserAddress.ADDRESS_MODE_CHOICES
-    user_address = UserAddress.active.filter(user=user).first()
 
-    # default值 檢測GET 或 驗證失敗回填
+    # 下拉選單縣市
+    city_choices = getattr(UserAddress, "ADDRESS_MODE_CHOICES", [])
+
+    # 目前使用者預設地址（可能為 None）
+    user_address = getattr(UserAddress, "active", UserAddress.objects).filter(user=user).first()
+
+    # 初始值
     initial_user = {
         "username": user.username or "",
         "email": user.email or "",
@@ -107,15 +111,32 @@ def editProfile(request):
     }
 
     if request.method == "POST":
+        # 1) 建立三張表單
         user_form = UserBasicForm(request.POST, user=user)
-        pwd_form = ChangePasswordForm(request.POST)
-        addr_form = AddressForm(request.POST)
+        pwd_form  = ChangePasswordForm(request.POST, user=request.user)
 
-        # 驗證三個 form
-        is_ok = user_form.is_valid() and pwd_form.is_valid() and addr_form.is_valid()
+        # 把前端自定義欄位名稱映射成 AddressForm 需要的 name/phone/city/address
+        data = request.POST.copy()
+        mapping = [
+            ("address_name", "name"),
+            ("address_phone", "phone"),
+            ("address_city", "city"),
+            ("address_detail", "address"),
+        ]
+        for src, dst in mapping:
+            if src in data and not data.get(dst):
+                data[dst] = data[src]
+        addr_form = AddressForm(data)
 
-        if not is_ok:
-            # 驗證失敗的話返回原頁面 render，帶著 form
+        # 2) 決定哪些表單需要驗證
+        pwd_submitted = any((request.POST.get(k) or "").strip() for k in ["new_password", "confirm_password"])
+        addr_submitted = any((data.get(k) or "").strip() for k in ["name", "phone", "city", "address"])
+
+        user_ok = user_form.is_valid()
+        pwd_ok  = (pwd_form.is_valid()  if pwd_submitted else True)
+        addr_ok = (addr_form.is_valid() if addr_submitted else True)
+
+        if not (user_ok and pwd_ok and addr_ok):
             return render(request, "common/edit_profile.html", {
                 "user_form": user_form,
                 "pwd_form": pwd_form,
@@ -125,59 +146,61 @@ def editProfile(request):
                 "accounts": PaymentAccount.active.filter(user=user),
             })
 
-        # 驗證後寫入資料
-        # User: email / username
-        email = user_form.cleaned_data["email"].strip()
-        username = (user_form.cleaned_data["username"] or "").strip()
+        # 3) 寫入 User（email/username）
+        email = (user_form.cleaned_data.get("email") or "").strip()
+        username = (user_form.cleaned_data.get("username") or "").strip()
         user.email = email
         if username:
             user.username = username
         user.save()
 
-        # Password（兩欄都填才改）
-        new_password = pwd_form.cleaned_data.get("new_password") or ""
-        confirm_password = pwd_form.cleaned_data.get("confirm_password") or ""
-        if new_password and confirm_password:
-            user.set_password(new_password)
-            user.save()
-            update_session_auth_hash(request, user)  # 不要登出
+        # 4) 寫入密碼（有輸入才變更）
+        if pwd_submitted:
+            old_password = pwd_form.cleaned_data.get("old_password") or ""
+            new_password = pwd_form.cleaned_data.get("new_password") or ""
+            confirm_password = pwd_form.cleaned_data.get("confirm_password") or ""
+            if old_password and new_password and confirm_password:
+                user.set_password(new_password)
+                user.save()
+                update_session_auth_hash(request, user)  # 保持登入
 
-        # Profile：暱稱 / 自介 / 頭像
+        # 5) 寫入 Profile（暱稱/自介/頭像）
         profile.nickname = request.POST.get("nickname", "") or ""
         profile.bio = request.POST.get("bio", "") or ""
         if "avatar" in request.FILES:
             profile.avatar = request.FILES["avatar"]
         profile.save()
 
-        # Address：建立或更新
-        name = addr_form.cleaned_data.get("name") or ""
-        phone = addr_form.cleaned_data.get("phone") or ""
-        city = addr_form.cleaned_data.get("city") or ""
-        address_detail = addr_form.cleaned_data.get("address") or ""
+        # 6) 地址：有輸入才建立/更新
+        if addr_submitted:
+            name = addr_form.cleaned_data.get("name") or ""
+            phone = addr_form.cleaned_data.get("phone") or ""
+            city = addr_form.cleaned_data.get("city") or ""
+            address_detail = addr_form.cleaned_data.get("address") or ""
 
-        address, created = UserAddress.objects.get_or_create(
-            user=user,
-            is_delete=False,
-            defaults={
-                "name": name,
-                "phone": phone,
-                "city": city,
-                "address": address_detail
-            }
-        )
-        if not created:
-            address.name = name
-            address.phone = phone
-            address.city = city
-            address.address = address_detail
-            address.save()
+            address, created = UserAddress.objects.get_or_create(
+                user=user,
+                is_delete=False,
+                defaults={
+                    "name": name,
+                    "phone": phone,
+                    "city": city,
+                    "address": address_detail
+                }
+            )
+            if not created:
+                address.name = name
+                address.phone = phone
+                address.city = city
+                address.address = address_detail
+                address.save()
 
         messages.success(request, "已更新個人資料")
         return redirect("editprofile")
 
-    # 第一次進來
+    # GET：建立表單（帶初始值）
     user_form = UserBasicForm(initial=initial_user, user=user)
-    pwd_form = ChangePasswordForm()
+    pwd_form  = ChangePasswordForm()
     addr_form = AddressForm(initial=initial_addr)
 
     return render(request, "common/edit_profile.html", {
@@ -188,3 +211,5 @@ def editProfile(request):
         "user_address": user_address,
         "accounts": PaymentAccount.active.filter(user=user),
     })
+
+

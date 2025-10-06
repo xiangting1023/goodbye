@@ -57,6 +57,11 @@
                 <div class="section-header">變更密碼：</div>
                 <div class="section-body">
                     <div class="form-group grid-align">
+                        <label for="old_password">舊密碼：</label>
+                        <input type="password" name="old_password" id="old_password">
+                        {% include "common/field_error.html" with field=pwd_form.old_password %}
+                    </div>
+                    <div class="form-group grid-align">
                         <label for="new_password">新密碼：</label>
                         <input type="password" name="new_password" id="new_password">
                         {% include "common/field_error.html" with field=pwd_form.new_password %}
@@ -73,18 +78,18 @@
             <div class="section">
                 <div class="section-header">收件人資料：</div>
                 <div class="section-body">
-                    <div class="form-group grid-align">
-                        <label for="address_name">姓名：</label>
-                        <input type="text" name="address_name" id="address_name" value="{{ user_address.name }}">
-                        {% include "common/field_error.html" with field=addr_form.name %}
-                    </div>
-                    <div class="form-group grid-align">
-                        <label for="address_phone">電話：</label>
-                        <input type="text" name="address_phone" id="address_phone" value="{{ user_address.phone }}">
-                        {% include "common/field_error.html" with field=addr_form.phone %}
-                    </div>
+                  <div class="form-group grid-align">
+                    <label for="name">姓名：</label>
+                    <input type="text" name="name" id="name" value="{{ addr_form.name.value|default:'' }}">
+                    {% include "common/field_error.html" with field=addr_form.name %}
+                  </div>
+                  <div class="form-group grid-align">
+                    <label for="phone">電話：</label>
+                    <input type="text" name="phone" id="phone" value="{{ addr_form.phone.value|default:'' }}">
+                    {% include "common/field_error.html" with field=addr_form.phone %}
+                  </div>
                 </div>
-            </div>
+              </div>
 
             <!-- 寄送地址 -->
             <div class="section">

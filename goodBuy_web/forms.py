@@ -1,4 +1,5 @@
 from django import forms
+from django.core.validators import RegexValidator
 from django.contrib.auth import authenticate , get_user_model
 from goodBuy_web.models import *
 
@@ -123,33 +124,83 @@ class UserBasicForm(forms.Form):
 #修改密碼（檢查兩次輸入一致性）
 #=============================
 class ChangePasswordForm(forms.Form):
-    new_password = forms.CharField(required=False, widget=forms.PasswordInput)
-    confirm_password = forms.CharField(required=False, widget=forms.PasswordInput)
+    old_password = forms.CharField(
+        label="舊密碼",
+        required=False,
+        widget=forms.PasswordInput(attrs={'placeholder': '請輸入舊密碼'})
+    )
+    new_password = forms.CharField(
+        label="新密碼",
+        required=False,
+        widget=forms.PasswordInput(attrs={'placeholder': '請輸入新密碼'})
+    )
+    confirm_password = forms.CharField(
+        label="確認新密碼",
+        required=False,
+        widget=forms.PasswordInput(attrs={'placeholder': '請再次輸入新密碼'})
+    )
+
+    def __init__(self, *args, user=None, **kwargs):
+        """
+        user: 當前登入使用者，用於驗證舊密碼
+        """
+        super().__init__(*args, **kwargs)
+        self.user = user
 
     def clean(self):
         cleaned = super().clean()
-        p1 = cleaned.get("new_password")
-        p2 = cleaned.get("confirm_password")
-        # 兩欄至少有一欄填，就要求兩欄都填且相同；兩欄都空＝不改密碼
-        if p1 or p2:
-            if not p1 or not p2:
-                self.add_error("confirm_password", "請完整輸入新密碼與確認密碼")
-            elif p1 != p2:
-                self.add_error("confirm_password", "新密碼與確認密碼不一致")
+        old = cleaned.get("old_password")
+        new = cleaned.get("new_password")
+        confirm = cleaned.get("confirm_password")
+
+        # 情況 1：完全沒填任何欄位 -> 略過驗證（表示不改密碼）
+        if not any([old, new, confirm]):
+            return cleaned
+
+        # 情況 2：只填部分欄位
+        if not all([old, new, confirm]):
+            raise forms.ValidationError("請完整輸入舊密碼、新密碼與確認密碼")
+
+        # 情況 3：驗證舊密碼正確
+        if self.user and not self.user.check_password(old):
+            self.add_error("old_password", "舊密碼不正確")
+            return cleaned
+
+        # 情況 4：新舊密碼相同
+        if old == new:
+            self.add_error("new_password", "新密碼不可與舊密碼相同")
+            return cleaned
+
+        # 情況 5：兩次新密碼不一致
+        if new != confirm:
+            self.add_error("confirm_password", "兩次新密碼不一致")
+            return cleaned
+
         return cleaned
 
 #=============================
 #管理收件地址
 #=============================
+taiwan_mobile_validator = RegexValidator(
+    regex=r'^09\d{8}$',
+    message='手機格式需為 09 開頭共 10 碼'
+)
+
 class AddressForm(forms.Form):
-    name = forms.CharField(required=False)
-    phone = forms.CharField(required=False)
-    city = forms.ChoiceField(required=False, choices=UserAddress.ADDRESS_MODE_CHOICES)
-    address = forms.CharField(required=False)
-    
-    #驗證電話號碼 不知道目前需不需要
-    # def clean_phone(self):
-    #     phone = (self.cleaned_data.get("phone") or "").strip()
-    #     if phone and not re.match(r"^09\d{8}$", phone):
-    #         raise forms.ValidationError("手機格式需為 09 開頭共 10 碼")
-    #     return phone
+    name = forms.CharField(label='姓名', max_length=30, required=True)
+    phone = forms.CharField(label='電話', max_length=10, required=True, validators=[taiwan_mobile_validator])
+    city = forms.ChoiceField(label='縣市', choices=getattr(UserAddress, 'ADDRESS_MODE_CHOICES', []), required=True)
+    address = forms.CharField(label='地址', max_length=120, required=True)
+
+    def clean_name(self):
+        return (self.cleaned_data['name'] or '').strip()
+
+    def clean_phone(self):
+        return (self.cleaned_data['phone'] or '').strip()
+
+    def clean_address(self):
+        return (self.cleaned_data['address'] or '').strip()
+
+    def clean(self):
+        cleaned = super().clean()
+        return cleaned
