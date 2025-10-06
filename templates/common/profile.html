@@ -84,7 +84,7 @@
         {{ profile_user.profile.nickname|default:profile_user.username }} 的賣場：
       </div>
       <div class="row g-4">
-        {% for shop in user_shops|slice:":6" %}
+        {% for shop in user_shops|slice:":4" %}
           <div class="col-6 col-sm-4 col-md-3 d-flex justify-content-center">
             <a href="{% url 'shop' shop.id %}" class="text-decoration-none">
               {% include 'common/card_item.html' with type='sell' shop=shop %}
@@ -94,7 +94,7 @@
           <div class="col-12 text-muted">這位使用者還沒有賣場</div>
         {% endfor %}
 
-        {% if user_shops|length > 6 %}
+        {% if user_shops|length > 4 %}
           <div class="col-12 text-end">
             <button class="more-btn"
                     onclick="window.location.href='{% url 'user_more' profile_user.id 'shops' %}'">
@@ -109,7 +109,7 @@
         {{ profile_user.profile.nickname|default:profile_user.username }} 的收物文：
       </div>
       <div class="row g-4">
-        {% for want in user_wants|slice:":6" %}
+        {% for want in user_wants|slice:":4" %}
           <div class="col-6 col-sm-4 col-md-3 d-flex justify-content-center">
             <a href="{% url 'want_detail' want.id %}" class="text-decoration-none">
               {% include 'common/card_item.html' with type='want' want=want %}
@@ -119,7 +119,7 @@
           <div class="col-12 text-muted">這位使用者還沒有收物文</div>
         {% endfor %}
 
-        {% if user_wants|length > 6 %}
+        {% if user_wants|length > 4 %}
           <div class="col-12 text-end">
             <button class="more-btn"
                     onclick="window.location.href='{% url 'user_more' profile_user.id 'wants' %}'">
